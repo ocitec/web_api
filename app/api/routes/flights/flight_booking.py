@@ -1,22 +1,22 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Path
 from bson import ObjectId, errors
 from typing import Dict
 from app.api.services.amadeus_service import AmadeusEnterpriseAPI
 from app.api.services.auth_service import get_current_admin_user
 from app.api.db.collections import flight_bookings_collection, amadeus_flight_pricing
-from app.api.models.flight_booking import FlightBookingRequest
+from app.api.models.flight_booking import FlightBookingRequest, FlightBookingOrder
 
 router = APIRouter()
 amadeus_api = AmadeusEnterpriseAPI()
 
 
-@router.post("/flight-order", tags=["Flight Booking"])
+@router.post("/flight-order", tags=["Flight Booking"],
+    summary="The Flight Orders endpoint performs the final booking for a chosen flight",
+    description="The endpoint provides a unique booking ID and reservation details once the reservation is completed.")
 async def book_flight_order_route(
     payload: FlightBookingRequest
 ):
-    """
-    Books a flight and returns the flight order details.
-    """
+
     try:
         # Validate ObjectId before query
         try:
@@ -51,18 +51,17 @@ async def book_flight_order_route(
 
 
 
-@router.get("/bookings", tags=["Flight Booking"])
-async def get_bookings():
+@router.get("/booking-order", tags=["Flight Booking"],
+    summary="Fetch booking record",
+    description="This endpoint fetch booking record for modification.")
+async def get_bookings(payload: FlightBookingOrder):
 
     return {"status": "success", "data": "bookings Data"}
 
 
 
 @router.delete("/cancel/{booking_id}", tags=["Flight Booking"])
-def cancel_flight_order(booking_id: str, user: Dict = Depends(get_current_admin_user)):
-    """
-    Cancels a flight booking (Admin Only).
-    """
+def cancel_flight_order(booking_id: str = Path(..., example="eJzTd9cPd3J3CgwGAAtcAmw%3D"), user: Dict = Depends(get_current_admin_user)):
     pass
 
 

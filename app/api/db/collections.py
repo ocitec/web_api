@@ -12,6 +12,10 @@ tour_reservations_collection = database["tour_reservations"]
 tour_packages_collection = database["tour_packages"]
 visa_collection = database["visa"]
 
+agencymgt_collection = database["agencymgt"]
+currency_collection = database["currency"]
+payment_collection = database["payment"]
+
 
 async def create_ttl_index():
     """

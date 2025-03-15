@@ -6,16 +6,17 @@ from app.api.db.collections import amadeus_flight_offers
 
 router = APIRouter()
 
-@router.post("/search", tags=["Flights"])
-async def search_flights_endpoint(payload: FlightSearchRequest = Body(...)):
-    """
-    Flight search API with:
-    - One-way trips
-    - Round-trip flights
-    - Multi-city flights
-    - Cabin class selection
-    """
+@router.post("/search", tags=["Flights"], 
+    summary="Flight  searches to find the cheapest flights for a given itinerary", 
+    description="Flight search API with:\
+                - One-way trips\
+                - Round-trip flights\
+                - Multi-city flights\
+                - Cabin class selection"
+    )
 
+async def search_flights_endpoint(payload: FlightSearchRequest = Body(...)):
+    
     # Validate trip type
     if payload.trip_type not in ["one-way", "round-trip", "multi-city"]:
         raise HTTPException(status_code=400, detail="Invalid trip_type. Use 'one-way', 'round-trip', or 'multi-city'.")
@@ -81,13 +82,11 @@ async def search_flights_endpoint(payload: FlightSearchRequest = Body(...)):
 
 
 
-@router.post("/pricing", tags=["Flights"])
+@router.post("/pricing", tags=["Flights"],
+    summary="To confirm the real-time price before proceeding to book",
+    description="The Flight pricing confirms the availability and final price \
+    (including taxes and fees) of flights returned by the Flight Search Endpoint")
 async def get_flight_pricing_route(payload: FlightPricingRequest = Body(...)):
-    """
-    Fetch record from `amadeus_flight_offers` where:
-    - `data_id` matches `_id`
-    - `flight_offer` exists in `flight_offers.data`
-    """
 
     try:
         # Find matching document in MongoDB

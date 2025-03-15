@@ -7,7 +7,7 @@ import httpx
 from datetime import datetime, timedelta
 from app.config import AMADEUS_BASE_URL, AMADEUS_AUTH_URL, AMADEUS_CLIENT_ID, AMADEUS_CLIENT_SECRET
 from app.api.db.collections import amadeus_flight_offers, amadeus_flight_pricing, amadeus_flight_bookings
-
+from app.api.services.helper import get_current_date, coy_profile
 
 # Fetch exchange rate (USD → NGN)
 USD_TO_NGN = 1500 # Get live amadeus rate
@@ -263,7 +263,6 @@ class AmadeusEnterpriseAPI:
                 "source": offer["source"],
                 "instant_Ticketing_Required": offer["instantTicketingRequired"],
                 "last_ticketing_date": offer["lastTicketingDate"],
-                "available_seats": offer["numberOfBookableSeats"],
                 "price": {
                     "currency": "NGN",
                     "total": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["grandTotal"])),
@@ -451,16 +450,13 @@ class AmadeusEnterpriseAPI:
     async def book_flight_order(self, flight_offer: dict, travelers: list):
         
         try:
-            token = self.get_access_token()
-            url = f"{self.base_url}/v1/booking/flight-orders"
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-
             
             if "data" not in flight_offer or "flightOffers" not in flight_offer["data"]:
                 raise HTTPException(status_code=400, detail="Invalid flight offer format.")
+
+            # get coy information
+            coy = await coy_profile()
+
 
             payload = {
                 "data": {
@@ -470,49 +466,57 @@ class AmadeusEnterpriseAPI:
                     "remark": {
                         "general": [
                             {
-                                "subType": "SOAS",
-                                "text": "ONLINE BOOKING FROM SOAS" 
+                                "subType": "OCI",
+                                "text": f"ONLINE BOOKING FROM {coy.get("coy_name", "OCI")}" 
                             }
                         ]
                     },
                     "ticketingAgreement": {
                         "option": "DELAY_TO_CANCEL",
-                        "delay": "1D" 
+                        "delay": "2D" 
                     },
                     
                       "contacts": [
                         {
                           "addresseeName": {
-                            "firstName": "SOYEMI",
-                            "lastName": "OLANREWAJU"
+                            "firstName": f"{coy.get("contact_firstname", "Busayo")}",
+                            "lastName": f"{coy.get("contact_lastname", "Afolabi")}",
                           },
-                          "companyName": "SOAS",
+                          "companyName": "OCI",
                           "purpose": "STANDARD",
                           "phones": [
                             {
                               "deviceType": "LANDLINE",
-                              "countryCallingCode": "234",
-                              "number": "1234567890"
+                              "countryCallingCode": f"{coy.get("country_code", "234")}",
+                              "number": f"{coy.get("agency_phone_number", "")}"
                             },
                             {
                               "deviceType": "MOBILE",
-                              "countryCallingCode": "234",
-                              "number": "1234567890"
+                              "countryCallingCode": f"{coy.get("country_code", "234")}",
+                              "number": f"{coy.get("agency_phone_number", "234")}",
                             }
                           ],
-                          "emailAddress": "info@ocitravels.com",
+                          "emailAddress": f"{coy.get("agency_email", "info@ocitravels.com")}",
                           "address": {
                             "lines": [
-                              "37B Fola Sibo Street"
+                              f"{coy.get("address_1", "Lekki Phase 1")}"
                             ],
-                            "postalCode": "100001",
-                            "cityName": "Lagos",
-                            "countryCode": "NG"
+                            "postalCode": f"{coy.get("postal_code", "100001")}",
+                            "cityName": f"{coy.get("city", "Lagos")}",
+                            "countryCode": f"{coy.get("countryIataCode", "NG")}"
                           }
                         }
                       ]                  
 
                 }
+            }
+
+
+            token = self.get_access_token()
+            url = f"{self.base_url}/v1/booking/flight-orders"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
             }
 
             async with httpx.AsyncClient() as client:
@@ -521,6 +525,21 @@ class AmadeusEnterpriseAPI:
             # Handle response
             if response.status_code == 201:
                 booking_data = response.json()
+
+                # source
+                booking_data['source'] = "Amadeus"
+                booking_data['date'] = get_current_date()
+
+                # add info
+                payment_info = {
+                    "status": "pending",
+                    "payment_reference_id": None,
+                    "payment_id": None,
+                    "payment_date": None
+                }
+
+                booking_data["payment"] = payment_info
+                booking_data["status"] = "booked"
 
                 # save booking data
                 insert_result = await amadeus_flight_bookings.insert_one(booking_data)
@@ -538,10 +557,13 @@ class AmadeusEnterpriseAPI:
     def format_flight_booking(self, response_data):
         
         booking_data = response_data.get("data", {})
+        payment_data = response_data.get("payment", {})
+        status = response_data.get("status")
 
         formatted_booking = {
             "booking_reference": booking_data.get("id"),
-            "status": booking_data.get("status"),
+            "status": status,
+            "date": response_data.get("date"),
             "associated_records": booking_data.get("associatedRecords", []),
             "flight_offers": [],
             "travelers": []
@@ -564,6 +586,14 @@ class AmadeusEnterpriseAPI:
                 "phone": f"{traveler['contact']['phones'][0]['countryCallingCode']}{traveler['contact']['phones'][0]['number']}" if "phones" in traveler["contact"] and traveler["contact"]["phones"] else "N/A",
                 "documents": traveler.get("documents", [])
             })
+
+        payment_details = {
+            "payment_id" : payment_data['payment_id'],
+            "payment_status" : payment_data['status'],
+            "payment_reference_id" : payment_data['payment_reference_id']
+        }
+        
+        formatted_booking['payment'] = payment_details
 
         return formatted_booking
 

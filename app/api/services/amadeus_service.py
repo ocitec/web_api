@@ -545,7 +545,7 @@ class AmadeusEnterpriseAPI:
                 insert_result = await amadeus_flight_bookings.insert_one(booking_data)
 
                 # saved booking ID
-                booking_data["bookingId"] = insert_result.inserted_id
+                booking_data["bookingId"] = str(insert_result.inserted_id)
 
                 return self.format_flight_booking(booking_data)  # Format booking response
             else:

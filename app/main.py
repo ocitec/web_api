@@ -12,6 +12,7 @@ from app.api.routes.tours.tour_packages import router as tour_packages_router
 from app.api.routes.tours.tour_package_reservation import router as reservation_router
 from app.api.routes.visa.visa import router as visa_router
 from app.api.routes.currency.currency import router as currency_router
+from app.api.routes.airport.airports import router as airports_router
 from app.api.db.collections import create_ttl_index
 
 app = FastAPI(title="Flight Booking API")
@@ -45,6 +46,7 @@ app.include_router(visa_router, prefix="/api/visa")
 app.include_router(destinations_router, prefix="/api/destinations")
 app.include_router(flight_deals_router, prefix="/api/flight-deals")
 app.include_router(currency_router, prefix="/api/currency", tags=["Currency"])
+app.include_router(airports_router, prefix="/api/airport", tags=["Airport"])
 
 @app.get("/")
 def home():

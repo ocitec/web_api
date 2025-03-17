@@ -12,10 +12,12 @@ CONFIG = {
     "development": {
         "HOST": os.getenv("HOST"),
         "PORT": os.getenv("PORT"),
+        "REDIS_URL": os.getenv("REDIS_URL"),
         "AMADEUS_BASE_URL": os.getenv("AMADEUS_ENTERPRISE_BASE_URL"), 
         "AMADEUS_AUTH_URL": os.getenv("AMADEUS_AUTH_URL"),
         "AMADEUS_CLIENT_ID": os.getenv("AMADEUS_ENTERPRISE_CLIENT_ID"),
         "AMADEUS_CLIENT_SECRET": os.getenv("AMADEUS_ENTERPRISE_CLIENT_SECRET"),
+        "API_AIRPORTS_URL": os.getenv("https://api.amadeus.com/v1/reference-data/locations"),
         "MONGODB_URI": os.getenv("MONGODB_URI"),
         "DATABASE_NAME": os.getenv("DATABASE_NAME"),
         "PAYSTACK_URL": os.getenv("PAYSTACK_URL"),
@@ -25,10 +27,12 @@ CONFIG = {
     "staging": {
         "HOST": os.getenv("STAGING_HOST"),
         "PORT": os.getenv("STAGING_PORT"),
+        "REDIS_URL": os.getenv("REDIS_URL"),
         "AMADEUS_BASE_URL": os.getenv("STAGING_AMADEUS_BASE_URL"),
         "AMADEUS_AUTH_URL": os.getenv("STAGING_AMADEUS_AUTH_URL"),
         "AMADEUS_CLIENT_ID": os.getenv("STAGING_AMADEUS_CLIENT_ID"),
         "AMADEUS_CLIENT_SECRET": os.getenv("STAGING_AMADEUS_CLIENT_SECRET"),
+        "API_AIRPORTS_URL": os.getenv("https://api.amadeus.com/v1/reference-data/locations"),
         "MONGODB_URI": os.getenv("STAGING_MONGODB_URI"),
         "DATABASE_NAME": os.getenv("DATABASE_NAME"),
         "PAYSTACK_URL": os.getenv("STAGING_PAYSTACK_URL"),
@@ -38,10 +42,12 @@ CONFIG = {
     "production": {
         "HOST": os.getenv("PROD_HOST"),
         "PORT": os.getenv("PROD_PORT"),
+        "REDIS_URL": os.getenv("REDIS_URL"),
         "AMADEUS_BASE_URL": os.getenv("PROD_AMADEUS_BASE_URL"),
         "AMADEUS_AUTH_URL": os.getenv("PROD_AMADEUS_AUTH_URL"),
         "AMADEUS_CLIENT_ID": os.getenv("PROD_AMADEUS_CLIENT_ID"),
         "AMADEUS_CLIENT_SECRET": os.getenv("PROD_AMADEUS_CLIENT_SECRET"),
+        "API_AIRPORTS_URL": os.getenv("https://api.amadeus.com/v1/reference-data/locations"),
         "MONGODB_URI": os.getenv("PROD_MONGODB_URI"),
         "DATABASE_NAME": os.getenv("PROD_DATABASE_NAME"),
         "PAYSTACK_URL": os.getenv("PROD_PAYSTACK_URL"),
@@ -57,10 +63,12 @@ HOST = ENV_CONFIG["HOST"]
 PORT = ENV_CONFIG["PORT"]
 
 # Global variables
+REDIS_URL = ENV_CONFIG["REDIS_URL"]
 AMADEUS_BASE_URL = ENV_CONFIG["AMADEUS_BASE_URL"]
 AMADEUS_AUTH_URL = ENV_CONFIG["AMADEUS_AUTH_URL"]
 AMADEUS_CLIENT_ID = ENV_CONFIG["AMADEUS_CLIENT_ID"]
 AMADEUS_CLIENT_SECRET = ENV_CONFIG["AMADEUS_CLIENT_SECRET"]
+API_AIRPORTS_URL = ENV_CONFIG["API_AIRPORTS_URL"]
 MONGODB_URI = ENV_CONFIG["MONGODB_URI"]
 DATABASE_NAME = ENV_CONFIG["DATABASE_NAME"]
 PAYSTACK_URL = ENV_CONFIG["PAYSTACK_URL"]

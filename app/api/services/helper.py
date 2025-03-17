@@ -1,49 +1,56 @@
 from datetime import datetime
-# import aioredis
 import json
+import redis.asyncio as aioredis
+from app.config import REDIS_URL
 from app.api.db.collections import agencymgt_collection, currency_collection
 
-# Connect to Redis
-# REDIS_URL = "redis://localhost:6379" 
-# redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+# Create Redis Connection Pool
+redis = aioredis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 def get_current_date():
-    """
-    Get the current UTC timestamp in ISO format.
-    Example: '2024-03-14T10:15:30Z'
-    """
+    """Returns the current UTC date/time in ISO format."""
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 async def coy_profile():
+    """Fetches agency profile, using Redis caching for faster performance."""
     cache_key = "agency_profile"
 
-    # cached_data = await redis.get(cache_key)
-    # if cached_data:
-    #     return json.loads(cached_data)
+    # Check Redis Cache First
+    cached_data = await redis.get(cache_key)
+    if cached_data:
+        return json.loads(cached_data)
 
+    # Fetch from MongoDB if not in cache
     agencymgt_data = await agencymgt_collection.find_one()
 
     if agencymgt_data:
-        agencymgt_data["_id"] = str(agencymgt_data["_id"]) 
+        agencymgt_data["_id"] = str(agencymgt_data["_id"])  # Convert ObjectId to string
 
-        # Store in Redis with expiration (1 hour)
-        # await redis.setex(cache_key, 3600, json.dumps(agencymgt_data))
+        # Store in Redis with 1-hour expiration
+        await redis.setex(cache_key, 3600, json.dumps(agencymgt_data))
 
     return agencymgt_data or None
 
 async def get_default_currency():
+    """Fetches the default currency, using Redis caching to reduce DB queries."""
     cache_key = "default_currency"
 
-    # cached_data = await redis.get(cache_key)
-    # if cached_data:
-    #     return json.loads(cached_data)
+    # Check Redis Cache First
+    cached_data = await redis.get(cache_key)
+    if cached_data:
+        return json.loads(cached_data)
 
+    # Fetch from MongoDB if not in cache
     currency = await currency_collection.find_one({"default": "Yes"})
 
     if currency:
         currency["_id"] = str(currency["_id"])  # Convert ObjectId to string
 
-        # Store in Redis with expiration (30 minutes)
-        # await redis.setex(cache_key, 1800, json.dumps(currency))
+        # Store in Redis with 30-minute expiration
+        await redis.setex(cache_key, 1800, json.dumps(currency))
 
     return currency or None
+
+async def close_redis():
+    """Closes Redis connection when shutting down."""
+    await redis.close()

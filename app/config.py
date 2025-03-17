@@ -10,6 +10,7 @@ APP_ENV = os.getenv("APP_ENV", "development").lower()
 # Default configurations
 CONFIG = {
     "development": {
+        "DEBUG": os.getenv("APP_DEBUG"),
         "HOST": os.getenv("HOST"),
         "PORT": os.getenv("PORT"),
         "REDIS_URL": os.getenv("REDIS_URL"),
@@ -40,6 +41,7 @@ CONFIG = {
         "PAYSTACK_SECRET": os.getenv("STAGING_PAYSTACK_SECRET"),
     },
     "production": {
+        "DEBUG": os.getenv("PROD_APP_DEBUG"),
         "HOST": os.getenv("PROD_HOST"),
         "PORT": os.getenv("PROD_PORT"),
         "REDIS_URL": os.getenv("REDIS_URL"),
@@ -61,6 +63,7 @@ ENV_CONFIG = CONFIG.get(APP_ENV, CONFIG["development"])
 
 HOST = ENV_CONFIG["HOST"]
 PORT = ENV_CONFIG["PORT"]
+APP_DEBUG = ENV_CONFIG["DEBUG"]
 
 # Global variables
 REDIS_URL = ENV_CONFIG["REDIS_URL"]

@@ -49,3 +49,10 @@ app.include_router(currency_router, prefix="/api/currency", tags=["Currency"])
 @app.get("/")
 def home():
     return {"message": "Welcome to the Flight Booking API"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    HOST = os.getenv("HOST", "0.0.0.0")
+    PORT = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host=HOST, port=PORT)

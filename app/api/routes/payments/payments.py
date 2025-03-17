@@ -5,7 +5,9 @@ from app.api.services.payment_service import paystack
 router = APIRouter()
 
 # Payment Initiation Endpoint
-@router.post("/initiate_payment", response_model=PaymentResponse)
+@router.post("/initiate_payment", response_model=PaymentResponse,
+    summary="initiate payment",
+    description="")
 async def initiate_payment(request: PaymentRequest):
     try:
         if request.payment_type.casefold() != "paystack":
@@ -17,6 +19,7 @@ async def initiate_payment(request: PaymentRequest):
         if payment_success:
             return PaymentResponse(
                 status="success",
+                booking_id="eJzTd9cPd3J3CgwGAAtcAmw%3D",
                 transaction_id="TXN567890",
                 message="Payment processed successfully"
             )
@@ -31,7 +34,9 @@ async def initiate_payment(request: PaymentRequest):
 
 
 # Payment Verification Endpoint
-@router.post("/verify_payment", response_model=PaymentVerificationResponse)
+@router.post("/verify_payment", response_model=PaymentVerificationResponse,
+    summary="verify payment",
+    description="")
 async def verify_payment(request: PaymentVerificationRequest):
     """
     Simulates verifying a payment.

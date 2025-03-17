@@ -16,7 +16,7 @@ class PaymentRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "payment_type": "paystack", # paystack, flutterwave etc
-                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
+                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D", 
                 "amount": 150.75,
                 "currency": "USD",
                 "payment_method": "credit_card",
@@ -28,6 +28,7 @@ class PaymentRequest(BaseModel):
 # Payment Response Model
 class PaymentResponse(BaseModel):
     status: str
+    booking_id: Optional[str]
     transaction_id: Optional[str]
     message: str
 
@@ -35,6 +36,7 @@ class PaymentResponse(BaseModel):
         json_schema_extra = {
             "example": {
                 "status": "success",
+                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
                 "transaction_id": "TXN567890",
                 "message": "Payment processed successfully"
             }
@@ -48,11 +50,13 @@ class PaymentVerificationRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
+                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
                 "transaction_id": "TXN567890"
             }
         }
 
 class PaymentVerificationResponse(BaseModel):
+    booking_id: str
     transaction_id: str
     status: str
     message: str
@@ -60,6 +64,7 @@ class PaymentVerificationResponse(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
+                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
                 "transaction_id": "TXN567890",
                 "status": "verified",
                 "message": "Payment successfully verified"

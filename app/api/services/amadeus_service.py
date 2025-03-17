@@ -544,6 +544,9 @@ class AmadeusEnterpriseAPI:
                 # save booking data
                 insert_result = await amadeus_flight_bookings.insert_one(booking_data)
 
+                # saved booking ID
+                booking_data["bookingId"] = insert_result.inserted_id
+
                 return self.format_flight_booking(booking_data)  # Format booking response
             else:
                 raise HTTPException(status_code=response.status_code, detail=f"Failed to book flight: {response.json()}")
@@ -556,11 +559,13 @@ class AmadeusEnterpriseAPI:
 
     def format_flight_booking(self, response_data):
         
+        booking_id = response_data.get("bookingId")
         booking_data = response_data.get("data", {})
         payment_data = response_data.get("payment", {})
         status = response_data.get("status")
 
         formatted_booking = {
+            "booking_id": booking_id,
             "booking_reference": booking_data.get("id"),
             "status": status,
             "date": response_data.get("date"),

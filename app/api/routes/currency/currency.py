@@ -25,7 +25,7 @@ async def add_currency(request: Currency, user: Dict = Depends(get_current_admin
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 # Get all currencies
-@router.get("/currencies", tags=["Currency"], response_model=List[Dict])
+@router.get("/currencies", tags=["Currency"])
 async def get_all_currencies():
     """
     Retrieve all currencies.

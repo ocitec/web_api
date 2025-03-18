@@ -7,6 +7,7 @@ load_dotenv()
 # Determine the environment (default to "development")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 
+
 # Default configurations
 CONFIG = {
     "development": {
@@ -80,5 +81,5 @@ PAYSTACK_SECRET = ENV_CONFIG["PAYSTACK_SECRET"]
 
 # Allowed Origins
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")  # Convert to list
-
+print(APP_ENV)
 # print(f"Loaded {APP_ENV} configuration")

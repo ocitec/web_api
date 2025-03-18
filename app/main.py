@@ -32,7 +32,7 @@ app.add_middleware(
 
 # Register flight routes
 app.include_router(flights_router, prefix="/api/flights", tags=["Flights"])
-app.include_router(flight_booking_router, prefix="/api/flights/booking", tags=["Flight Booking"])
+app.include_router(flight_booking_router, prefix="/api/flights/booking", tags=["Flights"])
 
 # register payment routes
 app.include_router(payments_router, prefix="/api/payments", tags=["Payments"])

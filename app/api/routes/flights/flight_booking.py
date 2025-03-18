@@ -10,7 +10,7 @@ router = APIRouter()
 amadeus_api = AmadeusEnterpriseAPI()
 
 
-@router.post("/flight-order", tags=["Flight Booking"],
+@router.post("/flight-order", tags=["Flights"],
     summary="The Flight Orders endpoint performs the final booking for a chosen flight",
     description="The endpoint provides a unique booking ID and reservation details once the reservation is completed.")
 async def book_flight_order_route(
@@ -51,7 +51,7 @@ async def book_flight_order_route(
 
 
 
-@router.get("/booking-order", tags=["Flight Booking"],
+@router.get("/booking-order", tags=["Flights"],
     summary="Fetch booking record",
     description="This endpoint fetch booking record for modification.")
 async def get_bookings(payload: FlightBookingOrder):
@@ -60,7 +60,9 @@ async def get_bookings(payload: FlightBookingOrder):
 
 
 
-@router.delete("/cancel/{booking_id}", tags=["Flight Booking"])
+@router.delete("/cancel/{booking_id}", tags=["Flights"],
+    summary="Cancel Booking",
+    description="This endpoint cancel booking record")
 def cancel_flight_order(booking_id: str = Path(..., example="eJzTd9cPd3J3CgwGAAtcAmw%3D"), user: Dict = Depends(get_current_admin_user)):
     pass
 

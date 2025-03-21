@@ -5,6 +5,9 @@ from bson import ObjectId
 from app.config import PAYSTACK_URL, PAYSTACK_API_KEY, PAYSTACK_SECRET
 from app.api.db.collections import payment_collection, amadeus_flight_bookings 
 from datetime import datetime
+from app.api.services.amadeus_service import amadeus_api
+from app.api.services.email_service import email_service
+
 
 class PaystackPayment:
     def __init__(self):
@@ -15,44 +18,78 @@ class PaystackPayment:
             "Content-Type": "application/json"
         }
 
-    async def initiate_payment(self, payment_params: dict) -> bool:
-        """
-        Initiates a payment request.
-        Returns True if the booking exists and reference is valid, otherwise False.
-        """
+    async def initiate_payment(self, payment_params: dict):
+       
         try:
             # Check if booking exists in the database
             booking_id = payment_params["booking_id"]
 
-            booking = await amadeus_flight_bookings.find_one({"data.id": booking_id})
+            booking = await amadeus_flight_bookings.find_one({"_id": ObjectId(booking_id)})
 
             if not booking:
                 return False 
 
-            return True
+            return str(booking["_id"])
+
         except Exception as e:
             print(f"Error checking booking: {e}") 
             return False
 
 
-    async def verify_payment(self, booking_id: str, reference_id: str) -> dict:
-        """
-        Verifies payment status on Paystack using the reference ID.
-        Updates the booking status and saves the payment record if successful.
-        """
+    async def verify_payment(self, verify_params:dict):
+        
         try:
-            verify_url = f"{self.url}/transaction/verify/{reference_id}"
+            # check if reference status
 
-            async with httpx.AsyncClient() as client:
-                response = await client.get(verify_url, headers=self.headers)
+            verify_url = f"{self.url}/transaction/verify/{verify_params['reference_id']}"
 
-            if response.status_code == 200:
-                transaction_data = response.json()
+            # async with httpx.AsyncClient() as client:
+            #     response = await client.get(verify_url, headers=self.headers)
+            response = {
+                "status_code": 200,
+                "data": {
+                    "status": "success",
+                    "reference_id": "TXN567890",
+                    "amount": 123456789,
+                    "currency": "NGN",
+                    "payment_channel": "CARD",
+                    "paid_at": datetime.utcnow().isoformat(),
+                    "customer": {
+                        "email": "user@email.com",
+                        "phone": "1234567890"
+                    }
+                }
+            }
+
+            if response["status_code"] == 200:
+                transaction_data = response
                 payment_status = transaction_data["data"]["status"]
+                booking_id = verify_params["booking_id"]
+                reference_id = verify_params["reference_id"]
+                payment_method = verify_params["payment_method"]
 
                 if payment_status == "success":
                     # Save payment record after successful verification
                     payment = await self.save_payment_record(transaction_data["data"])
+
+                    # fetch booking record
+                    bookingDetails = await amadeus_flight_bookings.find_one({"_id": ObjectId(booking_id)})
+
+                    # issue the booking ticket
+                    # bookingOrderId = bookingDetails["data"]["id"]
+                    # orderData = {
+                    #     "order_id": bookingOrderId,
+                    #     "formOfPayment": {
+                    #         "other":
+                    #         {
+                    #             "method" : "CASH"
+                    #         }
+                    #     } 
+                    # }
+                    # issueTicket = await amadeus_api.flight_issue(orderData=orderData)
+
+                    # if issueTicket:
+                    #     pass
 
                     # Update booking status in the database
                     update_data = {
@@ -60,21 +97,32 @@ class PaystackPayment:
                             "payment.status": "PAID",
                             "payment.payment_reference_id": reference_id,
                             "payment.payment_id": str(payment.inserted_id),
-                            "payment.payment_date": datetime.utcnow().isoformat()
+                            "payment.payment_date": datetime.utcnow().isoformat(),
+                            "payment.method": payment_method
                         }
                     }
+
                     update_result = await amadeus_flight_bookings.update_one({"_id": ObjectId(booking_id)}, update_data)
 
                     if update_result.modified_count == 0:
                         raise HTTPException(status_code=404, detail="Booking not found or update failed.")
+                    
+                    # send email notification 
+                    await email_service.send_email(bookingDetails)
 
-                    return {"status": "success", "data": transaction_data["data"]}
+                    return {
+                        "status": "Verified",
+                        "booking_id": booking_id,
+                        "reference_id": reference_id,
+                        "message": "Payment Verified"
+                    }
 
                 else:
                     return {
                         "status": "failed",
+                        "booking_id": booking_id,
+                        "reference_id": reference_id,
                         "message": f"Payment not successful. Status: {payment_status}",
-                        "data": transaction_data["data"]
                     }
 
             else:
@@ -93,11 +141,11 @@ class PaystackPayment:
         """
         try:
             payment_record = {
-                "reference": data.get("reference"),
+                "reference": data.get("reference_id"),
                 "amount": data.get("amount") / 100,  # Convert from kobo to Naira (NGN)
                 "currency": data.get("currency"),
                 "status": data.get("status"),
-                "payment_channel": data.get("channel"),
+                "payment_channel": data.get("payment_channel"),
                 "paid_at": data.get("paid_at"),
                 "customer": {
                     "email": data["customer"]["email"],

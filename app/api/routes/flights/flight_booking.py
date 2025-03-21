@@ -4,7 +4,7 @@ from typing import Dict
 from app.api.services.amadeus_service import AmadeusEnterpriseAPI
 from app.api.services.auth_service import get_current_admin_user
 from app.api.db.collections import flight_bookings_collection, amadeus_flight_pricing
-from app.api.models.flight_booking import FlightBookingRequest, FlightBookingOrder
+from app.api.models.flight_booking import FlightBookingRequest, FlightBookingOrder, FlightOrderIssuarance
 
 router = APIRouter()
 amadeus_api = AmadeusEnterpriseAPI()
@@ -51,13 +51,28 @@ async def book_flight_order_route(
 
 
 
+@router.post("/order_issue", tags=["Flights"], summary="", description="")
+async def ticket(request: FlightOrderIssuarance):
+    # try:
+    ticket = await amadeus_api.flight_issue(orderData=request.dict())
+
+    if ticket == False:
+        raise HTTPException(status_code=500, detail=f"Error Issuring Ticket: {str(e)}")
+    
+    return ticket
+
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Error Issuring Ticket: {str(e)}")
+
+
+
+
 @router.get("/booking-order", tags=["Flights"],
     summary="Fetch booking record",
     description="This endpoint fetch booking record for modification.")
 async def get_bookings(payload: FlightBookingOrder):
 
     return {"status": "success", "data": "bookings Data"}
-
 
 
 @router.delete("/cancel/{booking_id}", tags=["Flights"],

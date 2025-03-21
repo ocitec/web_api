@@ -140,3 +140,25 @@ class FlightBookingOrder(BaseModel):
                 "reference": "WBGBQS"
             }
         }
+
+
+# Define flight order issuance
+class FlightOrderIssuarance(BaseModel):
+    order_id: str
+    formOfPayment: Dict[str, Any]
+
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "order_id": "67d3f7c8bf2500d32ad0054e",
+                "formOfPayment": [
+                    {
+                        "other":
+                        {
+                            "method" : "CASH"
+                        }
+                    } 
+                ]
+            }
+        }

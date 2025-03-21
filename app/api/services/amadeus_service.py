@@ -1,13 +1,32 @@
 from fastapi import HTTPException
 import os
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import re
 import time
 import httpx
 from datetime import datetime, timedelta
 from app.config import AMADEUS_BASE_URL, AMADEUS_AUTH_URL, AMADEUS_CLIENT_ID, AMADEUS_CLIENT_SECRET
-from app.api.db.collections import amadeus_flight_offers, amadeus_flight_pricing, amadeus_flight_bookings
-from app.api.services.helper import get_current_date, coy_profile
+from app.api.db.collections import amadeus_flight_offers, amadeus_flight_pricing, amadeus_flight_bookings, airports_collection
+from app.api.services.helper import get_current_date, coy_profile, convertDateTime
+
+
+# Create a session
+session = requests.Session()
+
+# Define retry strategy
+retry = Retry(
+    total=5,  # Retry up to 5 times
+    backoff_factor=1,  # Wait 1, 2, 4, 8, etc. seconds between retries
+    status_forcelist=[500, 502, 503, 504],  # Retry on certain server errors
+    allowed_methods=frozenset({'GET', 'HEAD', 'POST'})  # Retry for these HTTP methods
+)
+
+# Mount the adapter to retry on failed requests
+adapter = HTTPAdapter(max_retries=retry)
+session.mount("https://", adapter)
+
 
 # Fetch exchange rate (USD → NGN)
 USD_TO_NGN = 1500 # Get live amadeus rate
@@ -139,6 +158,19 @@ class AmadeusEnterpriseAPI:
         else:
             return "Fare Rule for nonrefundable"
 
+    
+    async def aita_code_det(self, aita_code):
+        det = await airports_collection.find_one({"iata_code": aita_code})
+
+        if det:
+            det["_id"] = str(det["_id"])
+
+            return det
+
+        return None
+
+
+    
     def get_fare_details(self, flight_offer, segment_id):
         for traveler in flight_offer.get("travelerPricings", []):
             for segment in traveler.get("fareDetailsBySegment", []):
@@ -467,7 +499,7 @@ class AmadeusEnterpriseAPI:
                         "general": [
                             {
                                 "subType": "OCI",
-                                "text": f"ONLINE BOOKING FROM {coy.get("coy_name", "OCI")}" 
+                                "text": f"ONLINE BOOKING FROM {coy.get('coy_name', 'OCI')}" 
                             }
                         ]
                     },
@@ -479,31 +511,31 @@ class AmadeusEnterpriseAPI:
                       "contacts": [
                         {
                           "addresseeName": {
-                            "firstName": f"{coy.get("contact_firstname", "Busayo")}",
-                            "lastName": f"{coy.get("contact_lastname", "Afolabi")}",
+                            "firstName": f"{coy.get('contact_firstname', 'Busayo')}",
+                            "lastName": f"{coy.get('contact_lastname', 'Afolabi')}",
                           },
                           "companyName": "OCI",
                           "purpose": "STANDARD",
                           "phones": [
                             {
                               "deviceType": "LANDLINE",
-                              "countryCallingCode": f"{coy.get("country_code", "234")}",
-                              "number": f"{coy.get("agency_phone_number", "")}"
+                              "countryCallingCode": f"{coy.get('country_code', '234')}",
+                              "number": f"{coy.get('agency_phone_number', '')}"
                             },
                             {
                               "deviceType": "MOBILE",
-                              "countryCallingCode": f"{coy.get("country_code", "234")}",
-                              "number": f"{coy.get("agency_phone_number", "234")}",
+                              "countryCallingCode": f"{coy.get('country_code', '234')}",
+                              "number": f"{coy.get('agency_phone_number', '234')}",
                             }
                           ],
-                          "emailAddress": f"{coy.get("agency_email", "info@ocitravels.com")}",
+                          "emailAddress": f"{coy.get('agency_email', 'info@ocitravels.com')}",
                           "address": {
                             "lines": [
-                              f"{coy.get("address_1", "Lekki Phase 1")}"
+                              f"{coy.get('address_1', 'Lekki Phase 1')}"
                             ],
-                            "postalCode": f"{coy.get("postal_code", "100001")}",
-                            "cityName": f"{coy.get("city", "Lagos")}",
-                            "countryCode": f"{coy.get("countryIataCode", "NG")}"
+                            "postalCode": f"{coy.get('postal_code', '100001')}",
+                            "cityName": f"{coy.get('city', 'Lagos')}",
+                            "countryCode": f"{coy.get('countryIataCode', 'NG')}"
                           }
                         }
                       ]                  
@@ -557,12 +589,12 @@ class AmadeusEnterpriseAPI:
             raise HTTPException(status_code=500, detail=f"Unexpected error booking flight: {str(e)}")
 
 
-    def format_flight_booking(self, response_data):
-        
-        booking_id = response_data.get("bookingId")
+    async def format_flight_booking(self, response_data):
+        booking_id = response_data.get("bookingId", "")
         booking_data = response_data.get("data", {})
         payment_data = response_data.get("payment", {})
         status = response_data.get("status")
+        dictionaries = response_data.get("dictionaries", {})
 
         formatted_booking = {
             "booking_id": booking_id,
@@ -571,16 +603,21 @@ class AmadeusEnterpriseAPI:
             "date": response_data.get("date"),
             "associated_records": booking_data.get("associatedRecords", []),
             "flight_offers": [],
-            "travelers": []
+            "travelers": [],
+            "itineraries": []
         }
 
+        # Extract flight offers
         for offer in booking_data.get("flightOffers", []):
             formatted_booking["flight_offers"].append({
                 "flight_id": offer["id"],
                 "source": offer["source"],
-                "validating_airline": offer["validatingAirlineCodes"]
+                "validating_airline": offer["validatingAirlineCodes"],
+                "included_checked_BagOnly": offer["pricingOptions"]["includedCheckedBagsOnly"],
+                "traveler_pricings": offer["travelerPricings"]
             })
 
+        # Extract travelers
         for traveler in booking_data.get("travelers", []):
             formatted_booking["travelers"].append({
                 "traveler_id": traveler["id"],
@@ -592,17 +629,113 @@ class AmadeusEnterpriseAPI:
                 "documents": traveler.get("documents", [])
             })
 
+        # Extract itineraries
+        for offer in booking_data.get("flightOffers", []):
+            for itinerary in offer.get("itineraries", []):
+                formatted_itinerary = {
+                    "segments": []
+                }
+
+                prev_arrival_time = None
+
+                for segment in itinerary.get("segments", []):
+                    airline_code = segment["carrierCode"]
+                    flightDet = await self.aita_code_det(airline_code)
+                    depart_loc = await self.aita_code_det(segment["departure"]["iataCode"])
+                    arrive_loc = await self.aita_code_det(segment["arrival"]["iataCode"])
+
+                    segment_split = {
+                        "departure": {
+                            "iata_code": segment["departure"]["iataCode"],
+                            "location": depart_loc.get("name", ""),
+                            "terminal": segment["departure"].get("terminal", "N/A"),
+                            "time": convertDateTime(segment["departure"]["at"])
+                        },
+                        "arrival": {
+                            "iata_code": segment["arrival"]["iataCode"],
+                            "location": arrive_loc.get("name", ""),
+                            "terminal": segment["arrival"].get("terminal", "N/A"),
+                            "time": convertDateTime(segment["arrival"]["at"])
+                        },
+                        "carrier_code": airline_code,
+                        "flight_number": segment["number"],
+                        "flight_logo": f"https://www.gstatic.com/flights/airline_logos/70px/{airline_code}.png",
+                        "flight_duration": self.convert_duration(segment["duration"]),
+                        "aircraft_code": segment["aircraft"]["code"],
+                        "number_of_stops": segment.get("numberOfStops", 0),
+                        "cabin_class": "ECONOMY - V"
+                    }
+                    
+                    if prev_arrival_time:
+                        layover_duration = self.calculate_layover(prev_arrival_time, segment["departure"]["at"])
+                        segment_split["layover_duration"] = layover_duration
+                    
+                    prev_arrival_time = segment["arrival"]["at"]
+
+                    formatted_itinerary["segments"].append(segment_split)
+
+
+
+                formatted_booking["itineraries"].append(formatted_itinerary)
+
+        # Extract payment details
         payment_details = {
-            "payment_id" : payment_data['payment_id'],
-            "payment_status" : payment_data['status'],
-            "payment_reference_id" : payment_data['payment_reference_id']
+            "payment_id": payment_data.get("payment_id", ""),
+            "payment_status": payment_data.get("status", ""),
+            "payment_reference_id": payment_data.get("payment_reference_id", "")
         }
-        
-        formatted_booking['payment'] = payment_details
+        formatted_booking["payment"] = payment_details
 
         return formatted_booking
 
+
         
-    
+    async def flight_issue(self, orderData):
+        if orderData:
+            # check if bookig ID exist in DB
+            bookingId = orderData["order_id"]
+
+            isExist = await amadeus_flight_bookings.find_one({ "data.id": bookingId})
+
+            if isExist:
+                isExist["_id"] = str(isExist["_id"])
+                token = self.get_access_token() 
+
+                payload = {
+                    "data": {
+                        "formOfPayments": [
+                            orderData["formOfPayment"]
+                        ]
+                    }
+                }
+
+                url = f"{self.base_url}/v1/booking/flight-orders/{bookingId}/issuance"
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                }
+
+                response = session.post(url, json=payload, headers=headers)
+
+                if response.status_code in [200, 201]:
+
+                    amadeus_data = response.json()
+
+                    return {
+                        "status": 200,
+                        "message": amadeus_data
+                    }
+                else:
+                    raise HTTPException(status_code=response.status_code, detail=f"Request failed: {response.json()}")
+
+            else:
+                return {
+                    "status": 404,
+                    "message": "Booking Id not found."
+                }
+
+        else:
+            return False
+
 # Create an instance of the API
 amadeus_api = AmadeusEnterpriseAPI()

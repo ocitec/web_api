@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Travel Itinerary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 20px; border-radius: 5px; }
+        .hr { border-color: #ffbc0b }
+        .d-flex {
+          display: flex;
+        }        
+        .justify-between {
+          justify-content: space-between;
+        }
+        @media screen and (max-width: 768px){
+            .d-flex {
+                flex-direction: column;
+            }
+            .flex-item {
+                margin-bottom: 5px
+            }
+        }
+        .s-tittle{ color: #c00000 }
+        .section { border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        span{ font-size: 15px }
+        .section-layover{ padding-top: 0; padding-bottom: 0 }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+        .table th { background-color: #c00000; color: white; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+        .text-normal { font-weight: normal; }
+        .front-arrow::before { content: '→'; }
+        .back-arrow::before { content: '←'; }
+        .btn { background: #c00000; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="d-flex">
+            <div style="min-width: 20%;">
+                <img src="http://cdn.mcauto-images-production.sendgrid.net/59e3864d3b5d32b8/5b85164e-d27f-4cde-a12c-a624093c336a/362x476.png" alt="brandlogo" width="70px" style="margin-right: 10px; padding: 5px" /> 
+            </div>
+            <div style="width: 80%">
+                <h2 style="margin: 0; color: #333;">Flight Itinerary</h2>
+                    <hr class="hr">
+                    <div class="d-flex justify-between">
+                        <div class="flex-item">
+                            <span style="color: #777; font-size: 14px;">Booking Status:
+                                <br><strong>{{ data.status }}</strong>
+                            </span>
+                        </div>                        
+                        <div class="flex-item">
+                            <span style="color: #777; font-size: 14px;">Payment Status:
+                            <br><strong>{{ data.payment.payment_status }}</strong>
+                            </span>
+                        </div>
+                        <div class="flex-item">
+                            <span style="color: #777; font-size: 14px;">PNR:
+                            <br><strong>{{ data.associated_records[0].reference }}</strong>
+                            </span>
+                        </div>
+                    </div>
+            </div>
+        </div>
+        <hr class="hr">
+        <!-- Information -->
+        <div class="section">
+            <div class="d-flex justify-between">
+                <div class="flex-item" style="min-width: 300px">
+                    {% set t = data.travelers[0] %}
+
+                    <!-- set Adult, Child, Infant -->
+                    {% set counts = namespace(adult=0, child=0, infant=0) %}
+
+
+                    {% for x in data.flight_offers[0].traveler_pricings %}
+                        {% if x.travelerType == "ADULT" %}
+                            {% set counts.adult = counts.adult + 1 %}
+                        {% elif x.travelerType == "CHILD" %}
+                            {% set counts.child = counts.child + 1 %}
+                        {% elif x.travelerType == "INFANT" %}
+                            {% set counts.infant = counts.infant + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    <div>
+                        <span style="color: #777; font-size: 14px;">Traveler's: 
+                        <br>
+                        <strong>{{ t.name }}</strong> <br>
+                        <strong>+{{ t.phone }}</strong> <br><br>
+                        <span>{{ counts.adult }} Adult(s), {{ counts.child }} Child(s), {{ counts.infant }} Infant(s)</span> <br>
+                        </span>
+                    </div>
+                </div>                
+                <div class="flex-item">
+                    <div>
+                        {% set company = data.coy %}
+                        <span style="color: #777; font-size: 14px;">Agency Information: 
+                        <br>
+                        <span>Name: </span><strong>{{ company.coy_name }}</strong><br>
+                        <span>Address: </span><strong>{{ company.address_1 }}</strong><br>
+                        <span>Telephone: </span><strong><a href="tel:+{{ company.country_code}}{{ company.agency_phone_number }}">+{{ company.country_code}} {{ company.agency_phone_number }}</a></strong><br>
+                        <span>Email: </span><strong><a href="tel:{{ company.agency_email }}">{{ company.agency_email }}</a></strong><br>                        
+                        
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Segment Section -->
+        <div class="section">
+            <!-- segment -->
+            {% set f = data.itineraries %}
+            {% for s in f %}
+                {% set sg = s.segments %}
+                
+                {% for y in sg %}
+                <div>
+                    <!-- if layover -->
+                    {% if y.layover_duration %}
+                    <div class="section section-layover" style="background-color: #ffbc0b; border-color: #ffbc0b" >
+                        <p>Layover: <strong>{{ y.layover_duration }}</strong></p>
+                    </div>
+                    {% endif %}
+
+                    <h4 style="margin: 0; color: #333;">{{ y.departure.iata_code }} <span class="front-arrow"></span> {{ y.arrival.iata_code }}</h4><!-- using jinja template to get the airport name from the cod -->
+                    
+
+                    <div class="d-flex justify-between" style="margin-top:10px;">
+                        <!-- Departure -->
+                        <div class="flex-item" style="min-width: 50%; margin-right:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Departure:</strong> </p>
+                                    <span>{{ y.departure.location }}</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>{{ y.departure.time }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Arrival -->
+                        <div class="flex-item" style="min-width: 50%;margin-left:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Arrival:</strong> </p>
+                                    <span>{{ y.arrival.location }}</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>{{ y.arrival.time }}</span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex" style="padding:0px 0px 0px 15px;">
+                        <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight</strong>
+                            </p>
+                            <small>
+                                <img src="{{ y.flight_logo }}" alt="aircraftlogo" width="15px" style="" /> 
+                                {{ y.carrier_code }} {{ y.flight_number }}
+                            </small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Class</strong>
+                            </p>
+                            <small>ECONOMY - V</small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight Duration</strong>
+                            </p>
+                            <small>{{ y.flight_duration }}</small>
+                        </div>                    
+                    </div>
+                </div>
+                <hr>
+                
+                {% endfor %}
+            {% endfor %}
+            
+        </div>
+
+
+        <!-- Fare Details -->
+        <div class="section">
+            <h3 class="text-center">Fare Details</h3>
+            <table class="table">
+                <tr>
+                    <th colspan="5">DESCRIPTION</th>
+                    <th>FARE</th>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">DESCRIPTION</td>
+                    <td class="text-normal">Adult X 10</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">FARE</td>
+                    <td class="text-normal">187,736.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">FEES</td>
+                    <td class="text-normal">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">CURRENCY</td>
+                    <td class="text-normal">NGN</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">TOTAL</td>
+                    <td class="text-normal">723,761.0</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">Grand Total</td>
+                    <td class="text-bold">NGN 723,761.00</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Thank You Message -->
+        <p class="text-center text-bold">Thank you for your purchase!</p>
+        <p class="text-center"><a href="{{booking_url}}" class="btn">View Booking</a></p>
+    </div>
+
+</body>
+</html>

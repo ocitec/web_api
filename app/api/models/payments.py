@@ -6,30 +6,21 @@ from typing import Optional
 class PaymentRequest(BaseModel):
     payment_type: str
     booking_id: str
-    amount: float
-    currency: str
-    payment_method: str
-    customer_id: str
-    order_id: Optional[str] = None
-
+    amount: float 
+    
     class Config:
         json_schema_extra = {
             "example": {
                 "payment_type": "paystack", # paystack, flutterwave etc
                 "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D", 
-                "amount": 150.75,
-                "currency": "USD",
-                "payment_method": "credit_card",
-                "customer_id": "CUST12345",
-                "order_id": "ORD98765"
+                "amount": 1500.75                
             }
         }
 
 # Payment Response Model
-class PaymentResponse(BaseModel):
+class PaymentRequestResponse(BaseModel):
     status: str
     booking_id: Optional[str]
-    transaction_id: Optional[str]
     message: str
 
     class Config:
@@ -37,27 +28,28 @@ class PaymentResponse(BaseModel):
             "example": {
                 "status": "success",
                 "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
-                "transaction_id": "TXN567890",
-                "message": "Payment processed successfully"
+                "message": "Booking valid"
             }
         }
 
 # Payment Verification Model
 class PaymentVerificationRequest(BaseModel):
     booking_id: str
-    transaction_id: str
+    reference_id: str # payment reference ID
+    payment_method: str
 
     class Config:
         json_schema_extra = {
             "example": {
                 "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
-                "transaction_id": "TXN567890"
+                "reference_id": "TXN567890",
+                "payment_method": "CARD"
             }
         }
 
 class PaymentVerificationResponse(BaseModel):
     booking_id: str
-    transaction_id: str
+    reference_id: str
     status: str
     message: str
 
@@ -65,7 +57,7 @@ class PaymentVerificationResponse(BaseModel):
         json_schema_extra = {
             "example": {
                 "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",
-                "transaction_id": "TXN567890",
+                "reference_id": "TXN567890",
                 "status": "verified",
                 "message": "Payment successfully verified"
             }

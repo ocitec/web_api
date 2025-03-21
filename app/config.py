@@ -25,6 +25,8 @@ CONFIG = {
         "PAYSTACK_URL": os.getenv("PAYSTACK_URL"),
         "PAYSTACK_API_KEY": os.getenv("PAYSTACK_API_KEY"),
         "PAYSTACK_SECRET": os.getenv("PAYSTACK_SECRET"),
+        "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY"),
+        "EMAIL_SENDER": os.getenv("EMAIL_SENDER")
     },
     "staging": {
         "HOST": os.getenv("STAGING_HOST"),
@@ -40,6 +42,8 @@ CONFIG = {
         "PAYSTACK_URL": os.getenv("STAGING_PAYSTACK_URL"),
         "PAYSTACK_API_KEY": os.getenv("STAGING_PAYSTACK_API_KEY"),
         "PAYSTACK_SECRET": os.getenv("STAGING_PAYSTACK_SECRET"),
+        "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY"),
+        "EMAIL_SENDER": os.getenv("EMAIL_SENDER")
     },
     "production": {
         "DEBUG": os.getenv("PROD_APP_DEBUG"),
@@ -56,6 +60,8 @@ CONFIG = {
         "PAYSTACK_URL": os.getenv("PROD_PAYSTACK_URL"),
         "PAYSTACK_API_KEY": os.getenv("PROD_PAYSTACK_API_KEY"),
         "PAYSTACK_SECRET": os.getenv("PROD_PAYSTACK_SECRET"),
+        "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY"),
+        "EMAIL_SENDER": os.getenv("EMAIL_SENDER")
     },
 }
 
@@ -78,8 +84,10 @@ DATABASE_NAME = ENV_CONFIG["DATABASE_NAME"]
 PAYSTACK_URL = ENV_CONFIG["PAYSTACK_URL"]
 PAYSTACK_API_KEY = ENV_CONFIG["PAYSTACK_API_KEY"]
 PAYSTACK_SECRET = ENV_CONFIG["PAYSTACK_SECRET"]
+SENDGRID_API_KEY = ENV_CONFIG["SENDGRID_API_KEY"]
+EMAIL_SENDER = ENV_CONFIG["EMAIL_SENDER"]
 
 # Allowed Origins
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")  # Convert to list
-print(APP_ENV)
+# print(APP_ENV)
 # print(f"Loaded {APP_ENV} configuration")

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Body
-from app.api.models.payments import PaymentRequest, PaymentResponse, PaymentVerificationRequest, PaymentVerificationResponse
+from app.api.models.payments import PaymentRequest, PaymentRequestResponse, PaymentVerificationRequest, PaymentVerificationResponse
 from app.api.services.payment_service import paystack
 
 router = APIRouter()
 
 # Payment Initiation Endpoint
-@router.post("/initiate_payment", response_model=PaymentResponse,
+@router.post("/initiate_payment", response_model=PaymentRequestResponse,
     summary="initiate payment",
     description="")
 async def initiate_payment(request: PaymentRequest):
@@ -14,16 +14,15 @@ async def initiate_payment(request: PaymentRequest):
             raise HTTPException(status_code=400, detail="Unsupported payment type")
 
         # Process Paystack payment
-        payment_success = paystack.initiate_payment(request)
+        payment_success = await paystack.initiate_payment(request.dict())
 
         if payment_success:
-            return PaymentResponse(
+            return PaymentRequestResponse(
                 status="success",
-                booking_id="eJzTd9cPd3J3CgwGAAtcAmw%3D",
-                transaction_id="TXN567890",
-                message="Payment processed successfully"
+                booking_id=payment_success,
+                message="valid booking"
             )
-        return PaymentResponse(
+        return PaymentRequestResponse(
             status="error",
             transaction_id=None,
             message="Booking record not found"
@@ -38,30 +37,30 @@ async def initiate_payment(request: PaymentRequest):
     summary="verify payment",
     description="")
 async def verify_payment(request: PaymentVerificationRequest):
-    """
-    Simulates verifying a payment.
-    """
-    # Simulated verification logic
-    if request.transaction_id == "TXN567890":
+    
+    validate_payment = await paystack.verify_payment(request.dict())
+
+    if validate_payment:
         return PaymentVerificationResponse(
-            transaction_id=request.transaction_id,
-            status="verified",
-            message="Payment successfully verified"
+            booking_id=validate_payment["booking_id"],
+            reference_id=validate_payment["reference_id"],
+            status=validate_payment["status"],
+            message=validate_payment["message"]
         )
     else:
         raise HTTPException(status_code=400, detail="Invalid transaction ID")
 
 
 # Payment Status Check Endpoint
-@router.get("/payment_status/{transaction_id}", response_model=PaymentVerificationResponse)
-async def payment_status(transaction_id: str):
+@router.get("/payment_status/{reference_id}", response_model=PaymentVerificationResponse)
+async def payment_status(reference_id: str):
     """
     Retrieves the payment status.
     """
     # Simulated payment status check
-    if transaction_id == "TXN567890":
+    if reference_id == "TXN567890":
         return PaymentVerificationResponse(
-            transaction_id=transaction_id,
+            reference_id=reference_id,
             status="completed",
             message="Payment has been completed"
         )

@@ -40,6 +40,7 @@ async def book_flight_order_route(
             raise HTTPException(status_code=409, detail="Number of travelers mismatch.")
 
         # Process booking
+        print("got here")
         booking_details = await amadeus_api.book_flight_order(record["flight_pricing"], payload.travelers)
 
         return booking_details

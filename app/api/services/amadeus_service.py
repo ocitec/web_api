@@ -575,11 +575,11 @@ class AmadeusEnterpriseAPI:
 
                 # save booking data
                 insert_result = await amadeus_flight_bookings.insert_one(booking_data)
-
+                
                 # saved booking ID
                 booking_data["bookingId"] = str(insert_result.inserted_id)
 
-                return self.format_flight_booking(booking_data)  # Format booking response
+                return await self.format_flight_booking(booking_data)  # Format booking response
             else:
                 raise HTTPException(status_code=response.status_code, detail=f"Failed to book flight: {response.json()}")
 
@@ -616,6 +616,7 @@ class AmadeusEnterpriseAPI:
                 "included_checked_BagOnly": offer["pricingOptions"]["includedCheckedBagsOnly"],
                 "traveler_pricings": offer["travelerPricings"]
             })
+
 
         # Extract travelers
         for traveler in booking_data.get("travelers", []):
@@ -678,6 +679,7 @@ class AmadeusEnterpriseAPI:
 
                 formatted_booking["itineraries"].append(formatted_itinerary)
 
+
         # Extract payment details
         payment_details = {
             "payment_id": payment_data.get("payment_id", ""),
@@ -685,6 +687,7 @@ class AmadeusEnterpriseAPI:
             "payment_reference_id": payment_data.get("payment_reference_id", "")
         }
         formatted_booking["payment"] = payment_details
+        
 
         return formatted_booking
 

@@ -68,3 +68,23 @@ async def search_airports(query: str = Query(..., min_length=2)):
         return [{"iata_code": result["iata_code"], "name": result["name"]} for result in search_results]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.get("/list", tags=["Airport"], 
+    summary="Search for airport.", 
+    description="Search for the list of airports and cities.")
+async def list_airports():
+
+    try:
+        # Convert cursor to list (set length to None for all results)
+        airport_cities = await airports_collection.find({}).to_list(None)
+
+        # Convert ObjectId to string
+        formatted_airports = [
+            {**airport, "_id": str(airport["_id"])} for airport in airport_cities
+        ]
+
+        return formatted_airports
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

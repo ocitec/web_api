@@ -126,6 +126,12 @@ class AmadeusEnterpriseAPI:
             raise HTTPException(status_code=500, detail=f"Error in make_search_request: {str(e)}")
 
 
+    def convert_date_to_time(self, value):
+        # convert 2025-04-09T11:45:00 to HH:MM
+        datetime_obj = datetime.fromisoformat(value)
+        return datetime_obj.strftime("%H:%M")
+
+
     def convert_duration(self, duration):
         
         match = re.match(r'PT(\d+H)?(\d+M)?', duration)
@@ -154,9 +160,13 @@ class AmadeusEnterpriseAPI:
 
     def flight_rule(self, refundable=False):
         if refundable == True:
-            return "Fare Rule for refundable"
+            return {
+                "rule": "Fare Rule for refundable"
+            }
         else:
-            return "Fare Rule for nonrefundable"
+            return {
+                "rule": "Fare Rule for nonrefundable"
+            }
 
     
     async def aita_code_det(self, aita_code):
@@ -185,12 +195,21 @@ class AmadeusEnterpriseAPI:
         return {"class": "Unknown", "cabin": "Unknown", "baggage": "No baggage info", "fare_basis": "Unknown", "is_refundable": "Unknown"}
 
     def format_flight_search_data(self, response_data):
-        
-        formatted_results = []
+        formatted_results = {}
+
+        # Extract dictionaries and _id from response_data
         dictionaries = response_data.get("dictionaries", {})
         _id = response_data.get("inserted_id", {})
 
+        # Initialize the 'data' key as a list to handle multiple offers
+        formatted_results["data"] = []
+
+        # fare rule
+        fare_rule = None
+
+        # Process each offer in the response data
         for offer in response_data.get("data", []):
+            # Format the individual offer data
             formatted_offer = {
                 "type": offer["type"],
                 "id": offer["id"],
@@ -204,33 +223,34 @@ class AmadeusEnterpriseAPI:
                 "price": {
                     "currency": "NGN", 
                     "grand_total": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["grandTotal"])),
-                    "base_price": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["base"])),
+                    "base_price": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["base"]))
                 },
                 "pricing_options": {
-                    "fare_type": [
-                        offer["pricingOptions"]["fareType"]
-                    ],
+                    "fare_type": [offer["pricingOptions"]["fareType"]],
                     "included_checked_BagOnly": offer["pricingOptions"]["includedCheckedBagsOnly"]
                 },
                 "validating_airline": offer["validatingAirlineCodes"],
                 "itineraries": []
             }
 
+            # Process each itinerary for the current offer
             for itinerary in offer["itineraries"]:
                 formatted_itinerary = {
                     "duration": self.convert_duration(itinerary["duration"]),
                     "segments": []
                 }
 
-                prev_arrival_time = None 
+                prev_arrival_time = None  # Track the previous arrival time for layover calculation
 
+                # Process each segment in the itinerary
                 for segment in itinerary["segments"]:
                     departure_airport_code = segment["departure"]["iataCode"]
                     arrival_airport_code = segment["arrival"]["iataCode"]
                     airline_code = segment["carrierCode"]
 
-
                     fare_details = self.get_fare_details(offer, segment["id"])
+                    if not fare_rule:
+                        fare_rule = self.flight_rule(refundable=fare_details.get("is_refundable", False))
 
                     formatted_segment = {
                         "departure": {
@@ -239,7 +259,7 @@ class AmadeusEnterpriseAPI:
                                 "name": dictionaries["locations"].get(departure_airport_code, {}).get("countryCode", "Unknown Airport")
                             },
                             "terminal": segment["departure"].get("terminal", "N/A"),
-                            "time": segment["departure"]["at"]
+                            "time": self.convert_date_to_time(segment["departure"]["at"])
                         },
                         "arrival": {
                             "airport": {
@@ -247,7 +267,7 @@ class AmadeusEnterpriseAPI:
                                 "name": dictionaries["locations"].get(arrival_airport_code, {}).get("countryCode", "Unknown Airport")
                             },
                             "terminal": segment["arrival"].get("terminal", "N/A"),
-                            "time": segment["arrival"]["at"]
+                            "time": self.convert_date_to_time(segment["arrival"]["at"])
                         },
                         "flight_number": f"{airline_code}{segment['number']}",
                         "airline": {
@@ -265,23 +285,27 @@ class AmadeusEnterpriseAPI:
                         "is_refundable": fare_details.get("is_refundable", "Unknown")
                     }
 
+                    # Calculate layover duration if previous arrival time exists
                     if prev_arrival_time:
                         layover_duration = self.calculate_layover(prev_arrival_time, segment["departure"]["at"])
                         formatted_segment["layover_duration"] = layover_duration
 
-                    prev_arrival_time = segment["arrival"]["at"]  
+                    prev_arrival_time = segment["arrival"]["at"]  # Update the previous arrival time
 
                     formatted_itinerary["segments"].append(formatted_segment)
 
-                formatted_offer["itineraries"].append(formatted_itinerary)
+                formatted_offer["itineraries"].append(formatted_itinerary) 
 
-            formatted_results.append(formatted_offer)
+            # Append each formatted offer to the 'data' list
+            formatted_results["data"].append(formatted_offer)
 
-        formatted_results.append(dictionaries)
-
-        formatted_results.append({"data_id": str(_id)})
+        # Add 'dictionaries' and 'data_id' to the formatted results
+        formatted_results["fare_rules"] = fare_rule
+        formatted_results["dictionaries"] = dictionaries
+        formatted_results["data_id"] = str(_id)
 
         return formatted_results
+
 
     def format_flight_pricing_data(self, response_data):
         

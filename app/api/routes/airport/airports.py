@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query
-from app.api.db.collections import airports_collection
-from app.api.models.airports import Airports
+from app.api.db.collections import airports_collection, carrier_collection
+from app.api.models.airports import Airports, Carrier
 from typing import List
 
 router = APIRouter()
@@ -86,5 +86,50 @@ async def list_airports():
 
         return formatted_airports
     
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+
+@router.post("/add_carrier", tags=["Airport"])
+async def add_carrier(request: List[Carrier]):
+    try:
+        # Convert the list of Carrier Pydantic models to dictionaries
+        carrier_data = [carrier.dict() for carrier in request]
+        
+        # Collect the IATA codes and names from the incoming carrier to check if they already exist
+        iata_codes = [carrier["iata_code"] for carrier in carrier_data]
+        names = [carrier["name"] for carrier in carrier_data]
+        
+        # Check for existing carrier with matching IATA codes or names in a single query
+        exisiting_carrier_cursor = carrier_collection.find({
+            "$or": [
+                {"iata_code": {"$in": iata_codes}},
+                {"name": {"$in": names}}
+            ]
+        })
+        
+        # Convert the cursor to a list
+        exisiting_carrier = await exisiting_carrier_cursor.to_list(length=1000)
+
+        # Create a set of existing IATA codes and names for fast lookup
+        existing_iata_codes = {carrier["iata_code"] for carrier in exisiting_carrier}
+        existing_names = {carrier["name"] for carrier in exisiting_carrier}
+
+        # Filter out the carriers that already exist
+        carriers_data_add = [
+            carrier for carrier in carrier_data 
+            if carrier["iata_code"] not in existing_iata_codes and carrier["name"] not in existing_names
+        ]
+        
+        # If there are new carriers to add, insert them
+        if carriers_data_add:
+            result = await carrier_collection.insert_many(carriers_data_add)
+
+        return {
+            "status": "success",
+            "inserted_count": len(carriers_data_add)  # Return number of inserted records
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 import os
 import requests
+import socket
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
@@ -9,7 +10,7 @@ import httpx
 from datetime import datetime, timedelta
 from app.config import AMADEUS_BASE_URL, AMADEUS_AUTH_URL, AMADEUS_CLIENT_ID, AMADEUS_CLIENT_SECRET
 from app.api.db.collections import amadeus_flight_offers, amadeus_flight_pricing, amadeus_flight_bookings, airports_collection
-from app.api.services.helper import get_current_date, coy_profile, convertDateTime
+from app.api.services.helper import get_current_date, coy_profile, convertDateTime, iataCarrier, airportName, calculate_total_time
 
 
 # Create a session
@@ -86,7 +87,6 @@ class AmadeusEnterpriseAPI:
         return existing_pricing if existing_pricing else None
 
 
-
     async def make_search_request(self, method: str, endpoint: str, data: dict):
         try:
             cached_offers = await self.find_flight_in_db(data)
@@ -124,12 +124,18 @@ class AmadeusEnterpriseAPI:
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error in make_search_request: {str(e)}")
+    
 
 
     def convert_date_to_time(self, value):
         # convert 2025-04-09T11:45:00 to HH:MM
         datetime_obj = datetime.fromisoformat(value)
         return datetime_obj.strftime("%H:%M")
+
+    def convert_date(self, value):
+        # convert 2025-04-09T11:45:00 to Aug 12, 2025
+        datetime_obj = datetime.fromisoformat(value)
+        return datetime_obj.strftime("%b %d, %Y")
 
 
     def convert_duration(self, duration):
@@ -259,6 +265,7 @@ class AmadeusEnterpriseAPI:
                                 "name": dictionaries["locations"].get(departure_airport_code, {}).get("countryCode", "Unknown Airport")
                             },
                             "terminal": segment["departure"].get("terminal", "N/A"),
+                            "date": self.convert_date(segment["departure"]["at"]),
                             "time": self.convert_date_to_time(segment["departure"]["at"])
                         },
                         "arrival": {
@@ -267,6 +274,7 @@ class AmadeusEnterpriseAPI:
                                 "name": dictionaries["locations"].get(arrival_airport_code, {}).get("countryCode", "Unknown Airport")
                             },
                             "terminal": segment["arrival"].get("terminal", "N/A"),
+                            "date": self.convert_date(segment["arrival"]["at"]),
                             "time": self.convert_date_to_time(segment["arrival"]["at"])
                         },
                         "flight_number": f"{airline_code}{segment['number']}",
@@ -306,43 +314,113 @@ class AmadeusEnterpriseAPI:
 
         return formatted_results
 
+    
+    def get_airline_name(self, aita_code):
+        return "carrier_data"
 
-    def format_flight_pricing_data(self, response_data):
-        
+
+    async def format_flight_pricing_data(self, response_data):
         formatted_pricing = []
         dictionaries = response_data.get("dictionaries", {})
         _id = response_data.get("inserted_id", {})
 
+        def get_aircraft_name(aircraft_code):
+            return dictionaries.get("aircraft", {}).get(aircraft_code, "Unknown Aircraft")
+
         for offer in response_data.get("data", {}).get("flightOffers", []):
+            # Simplified pricing conversion and markup application
+            price_data = offer.get("price", {})
             formatted_offer = {
-                "flight_id": offer["id"],
-                "source": offer["source"],
-                "instant_Ticketing_Required": offer["instantTicketingRequired"],
-                "last_ticketing_date": offer["lastTicketingDate"],
+                "flight_id": offer.get("id"),
+                "source": offer.get("source"),
+                "instant_Ticketing_Required": offer.get("instantTicketingRequired"),
+                "last_ticketing_date": offer.get("lastTicketingDate"),
+                "itineraries": [],
                 "price": {
                     "currency": "NGN",
-                    "total": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["grandTotal"])),
-                    "base": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["base"]))
+                    "total": self.convert_usd_to_ngn(self.apply_markup(price_data.get("grandTotal", 0))),
+                    "base": self.convert_usd_to_ngn(self.apply_markup(price_data.get("base", 0)))
                 },
-                "validating_airline": offer["validatingAirlineCodes"],
+                "validating_airline": offer.get("validatingAirlineCodes", []),
                 "traveler_pricing": []
             }
 
-            for traveler in offer["travelerPricings"]:
-                traveler_details = {
-                    "traveler_id": traveler["travelerId"],
-                    "fare_option": traveler["fareOption"],
-                    "traveler_type": traveler["travelerType"],
-                    "total_price": self.convert_usd_to_ngn(self.apply_markup(traveler["price"]["total"])),
+            for itinerary in offer.get("itineraries", []):
+                formatted_itinerary = {
                     "segments": []
                 }
 
-                for segment in traveler["fareDetailsBySegment"]:
+                prev_arrival_time = None  # Track previous arrival time for layovers
+
+                for segment in itinerary.get("segments", []):
+                    departure_airport_code = segment.get("departure", {}).get("iataCode", "")
+                    arrival_airport_code = segment.get("arrival", {}).get("iataCode", "")
+                    airline_code = segment.get("carrierCode", "")
+
+                    fare_details = self.get_fare_details(offer, segment.get("id"))
+                    departure_airport = await airportName(departure_airport_code)
+                    arrival_airport = await airportName(arrival_airport_code)
+                    
+                    formatted_segment = {
+                        "departure": {
+                            "airport": {
+                                "code": departure_airport_code,
+                                "name": departure_airport.get("name", "N/A"),
+                                "city": departure_airport.get("city", "N/A"),
+                                "country": departure_airport.get("country", "N/A")
+                            },
+                            "terminal": segment.get("departure", {}).get("terminal", "N/A"),
+                            "date": self.convert_date(segment.get("departure", {}).get("at")),
+                            "time": self.convert_date_to_time(segment.get("departure", {}).get("at"))
+                        },
+                        "arrival": {
+                            "airport": {
+                                "code": arrival_airport_code,
+                                "name": arrival_airport.get("name", "N/A"),
+                                "city": arrival_airport.get("city", "N/A"),
+                                "country": arrival_airport.get("country", "N/A")
+                            },
+                            "terminal": segment.get("arrival", {}).get("terminal", "N/A"),
+                            "date": self.convert_date(segment.get("arrival", {}).get("at")),
+                            "time": self.convert_date_to_time(segment.get("arrival", {}).get("at"))
+                        },
+                        "flight_number": f"{airline_code}{segment.get('number', '')}",
+                        "airline": {
+                            "code": airline_code,
+                            "name": await iataCarrier(airline_code),
+                            "logo": f"https://www.gstatic.com/flights/airline_logos/70px/{airline_code}.png"
+                        },
+                        "aircraft": get_aircraft_name(segment.get("aircraft", {}).get("code", "")),
+                        "operating_airline": segment.get("operating", {}).get("carrierCode", ""),
+                        "stops": segment.get("numberOfStops", 0),
+                        "duration": self.convert_duration(segment.get("duration"))
+                    }
+
+                    # Calculate layover duration if previous arrival time exists
+                    if prev_arrival_time:
+                        layover_duration = self.calculate_layover(prev_arrival_time, segment.get("departure", {}).get("at"))
+                        formatted_segment["layover_duration"] = layover_duration
+
+                    prev_arrival_time = segment.get("arrival", {}).get("at")  # Update previous arrival time
+                    formatted_itinerary["segments"].append(formatted_segment)
+
+                formatted_offer["itineraries"].append(formatted_itinerary)
+
+            for traveler in offer.get("travelerPricings", []):
+                traveler_details = {
+                    "traveler_id": traveler.get("travelerId"),
+                    "fare_option": traveler.get("fareOption"),
+                    "traveler_type": traveler.get("travelerType"),
+                    "total_price": self.convert_usd_to_ngn(self.apply_markup(traveler.get("price", {}).get("total", 0))),
+                    "segments": []
+                }
+
+                for segment in traveler.get("fareDetailsBySegment", []):
                     segment_details = {
-                        "segment_id": segment["segmentId"],
-                        "cabin": segment["cabin"],
-                        "class": segment["class"],
-                        "fare_basis": segment["fareBasis"],
+                        "segment_id": segment.get("segmentId"),
+                        "cabin": segment.get("cabin"),
+                        "class": segment.get("class"),
+                        "fare_basis": segment.get("fareBasis"),
                         "baggage": segment.get("includedCheckedBags", {}).get("quantity", "Unknown"),
                         "is_refundable": "Yes" if "REFUNDABLE" in segment.get("fareBasis", "").upper() else "No"
                     }
@@ -352,11 +430,12 @@ class AmadeusEnterpriseAPI:
 
             formatted_pricing.append(formatted_offer)
 
+        # Append dictionaries and data_id at the end
         formatted_pricing.append(dictionaries)
-
         formatted_pricing.append({"data_id": str(_id)})
 
         return formatted_pricing
+
 
     def selection_rule(self, adults, children, infants):
         
@@ -461,7 +540,7 @@ class AmadeusEnterpriseAPI:
         cached_pricing = await self.find_flight_pricing_in_db(flight_offer)
         if cached_pricing:
             cached_pricing["flight_pricing"]["inserted_id"] = cached_pricing["_id"]
-            return self.format_flight_pricing_data(cached_pricing["flight_pricing"])
+            return await self.format_flight_pricing_data(cached_pricing["flight_pricing"])
 
         payload = {
             "data": {
@@ -494,7 +573,7 @@ class AmadeusEnterpriseAPI:
 
                 amadeus_data["inserted_id"] = insert_result.inserted_id
 
-                return self.format_flight_pricing_data(amadeus_data)
+                return await self.format_flight_pricing_data(amadeus_data)
 
             else:
                 raise HTTPException(status_code=response.status_code, detail=f"Request failed: {response.json()}")

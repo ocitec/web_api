@@ -88,34 +88,34 @@ async def search_flights_endpoint(payload: FlightSearchRequest = Body(...)):
     (including taxes and fees) of flights returned by the Flight Search Endpoint")
 async def get_flight_pricing_route(payload: FlightPricingRequest = Body(...)):
 
-    try:
+    # try:
         # Find matching document in MongoDB
-        record = await amadeus_flight_offers.find_one({"_id": ObjectId(payload.data_id)})
+    record = await amadeus_flight_offers.find_one({"_id": ObjectId(payload.data_id)})
 
-        if not record:
-            raise HTTPException(status_code=404, detail="No matching flight offer found.") # return user to booking page
+    if not record:
+        raise HTTPException(status_code=404, detail="No matching flight offer found.") # return user to booking page
 
-        # Find matching flight offer in `flight_offers.data`
-        matching_offer = next(
-            (
-                offer for offer in record["flight_offers"]["data"]
-                if offer.get("id") == payload.flight_offer.get("id")
-                and offer.get("type") == payload.flight_offer.get("type")
-                and offer.get("source") == payload.flight_offer.get("source")
-            ),
-            None
-        )
+    # Find matching flight offer in `flight_offers.data`
+    matching_offer = next(
+        (
+            offer for offer in record["flight_offers"]["data"]
+            if offer.get("id") == payload.flight_offer.get("id")
+            and offer.get("type") == payload.flight_offer.get("type")
+            and offer.get("source") == payload.flight_offer.get("source")
+        ),
+        None
+    )
 
-        if not matching_offer:
-            raise HTTPException(status_code=404, detail="Flight offer not found in stored data.")
+    if not matching_offer:
+        raise HTTPException(status_code=404, detail="Flight offer not found in stored data.")
 
-        # Fetch pricing details from Amadeus API
-        pricing_details = await amadeus_api.get_flight_pricing(matching_offer)
+    # Fetch pricing details from Amadeus API
+    pricing_details = await amadeus_api.get_flight_pricing(matching_offer)
 
-        return pricing_details
+    return pricing_details
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
 
 

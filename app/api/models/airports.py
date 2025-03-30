@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
-# Pydantic model for updating About page
+# Pydantic model for Airport
 class Airports(BaseModel):
     iata_code: str
     name: str
@@ -16,6 +16,21 @@ class Airports(BaseModel):
                 "name": "John F. Kennedy International Airport",
                 "city": "New York",
                 "country": "United States"
+            }
+        }
+
+
+# Pydantic model for Carrier
+class Carrier(BaseModel):
+    iata_code: str
+    name: str
+    
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "iata_code": "LH",
+                "name": "Lufthansa ",
             }
         }
 

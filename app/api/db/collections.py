@@ -2,6 +2,7 @@ from app.database import database
 import pymongo
 
 airports_collection = database["airports"]
+carrier_collection = database["carriers"]
 amadeus_flight_offers = database["amadeus_flight_offers"]
 amadeus_flight_pricing = database["amadeus_flight_pricing"]
 amadeus_flight_bookings = database["amadeus_flight_bookings"]

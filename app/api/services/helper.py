@@ -4,7 +4,7 @@ import json
 import logging
 import asyncio
 from app.config import REDIS_URL
-from app.api.db.collections import agencymgt_collection, currency_collection
+from app.api.db.collections import agencymgt_collection, currency_collection, carrier_collection, airports_collection
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)  # Set to ERROR in production
@@ -37,6 +37,27 @@ def convertDateTime(date_string):
         return dt.strftime("%a, %b %d, %Y, %I:%M %p")  # Format: Fri, Jun 17, 2025, 10:10 PM
     except ValueError as e:
         return f"Invalid date format: {e}"
+
+
+async def iataCarrier(iatacode):
+    try:
+        carrier_data = await carrier_collection.find_one({ "iata_code": iatacode })
+        if carrier_data:
+            return carrier_data["name"]
+    except Exception as e:
+        logger.error(f"MongoDB error (iata_Carrier): {e}")
+        return None
+
+
+async def airportName(iatacode):
+    try:
+        airport_data = await airports_collection.find_one({ "iata_code": iatacode })
+        if airport_data:
+            airport_data["_id"] = str(airport_data["_id"])
+            return airport_data
+    except Exception as e:
+        logger.error(f"MongoDB error (iata_Carrier): {e}")
+        return None
 
 
 async def coy_profile():
@@ -87,6 +108,26 @@ async def get_default_currency():
     except Exception as e:
         logger.error(f"MongoDB error (get_default_currency): {e}")
         return None
+
+
+def calculate_total_time(times):
+    total_minutes = 0
+
+    # Loop through each time string and calculate total minutes
+    for time in times:
+        # Split the string and extract hours and minutes
+        time_parts = time.split(' ')
+        hours = int(time_parts[0].replace('h', ''))
+        minutes = int(time_parts[1].replace('m', ''))
+
+        # Add total minutes (convert hours to minutes and add minutes)
+        total_minutes += (hours * 60) + minutes
+
+    # Calculate total hours and remaining minutes
+    total_hours = total_minutes // 60
+    remaining_minutes = total_minutes % 60
+
+    return f"{total_hours}h {remaining_minutes}m"
 
 
 async def startup():

@@ -133,3 +133,24 @@ async def add_carrier(request: List[Carrier]):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+
+@router.get("/carrier", tags=["Airport"], 
+    summary="Search for Airlines.", 
+    description="Search for the list of airlines.")
+async def carriers():
+
+    try:
+        # Convert cursor to list (set length to None for all results)
+        list_carriers = await carrier_collection.find({}).to_list(None)
+
+        # Convert ObjectId to string
+        formatted_carrier = [
+            {**airport, "_id": str(airport["_id"])} for airport in list_carriers
+        ]
+
+        return formatted_carrier
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -446,14 +446,33 @@ class AmadeusEnterpriseAPI:
         return True
 
     def flight_travelers(self, travelers, passengers, passengers_type):
-        
         for _ in range(passengers):
-            travelers.append({
-                "id": str(len(travelers) + 1),
-                "travelerType": passengers_type, 
-                # "fareOptions": ["STANDARD"]
-            })
+            if passengers_type == "INFANT":
+                # Get the list of all existing adults
+                adult_travelers = [t for t in travelers if t["travelerType"] == "ADULT"]
+                
+                if not adult_travelers:
+                    raise ValueError("At least one adult is required for an infant traveler.")
+                
+                # Associate each infant with the next available adult
+                associated_adult = adult_travelers[len(travelers) % len(adult_travelers)]
+                
+                travelers.append({
+                    "id": str(len(travelers) + 1),
+                    "travelerType": "HELD_INFANT",
+                    "associatedAdultId": associated_adult["id"],
+                    "age": 1,  # Default age, adjust as needed
+                    "fareOptions": ["STANDARD"]
+                })
+            else:
+                travelers.append({
+                    "id": str(len(travelers) + 1),
+                    "travelerType": passengers_type,
+                    "fareOptions": ["STANDARD"]
+                })
+        
         return travelers
+
 
     def maxFlightOffers(self):
         
@@ -537,10 +556,10 @@ class AmadeusEnterpriseAPI:
 
 
     async def get_flight_pricing(self, flight_offer):
-        cached_pricing = await self.find_flight_pricing_in_db(flight_offer)
-        if cached_pricing:
-            cached_pricing["flight_pricing"]["inserted_id"] = cached_pricing["_id"]
-            return await self.format_flight_pricing_data(cached_pricing["flight_pricing"])
+        # cached_pricing = await self.find_flight_pricing_in_db(flight_offer)
+        # if cached_pricing:
+        #     cached_pricing["flight_pricing"]["inserted_id"] = cached_pricing["_id"]
+        #     return await self.format_flight_pricing_data(cached_pricing["flight_pricing"])
 
         payload = {
             "data": {
@@ -717,7 +736,9 @@ class AmadeusEnterpriseAPI:
                 "source": offer["source"],
                 "validating_airline": offer["validatingAirlineCodes"],
                 "included_checked_BagOnly": offer["pricingOptions"]["includedCheckedBagsOnly"],
-                "traveler_pricings": offer["travelerPricings"]
+                "pricing": offer["pricing"],
+                "traveler_pricings": offer["travelerPricings"],
+
             })
 
 

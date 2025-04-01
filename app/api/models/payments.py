@@ -6,14 +6,12 @@ from typing import Optional
 class PaymentRequest(BaseModel):
     payment_type: str
     booking_id: str
-    amount: float 
     
     class Config:
         json_schema_extra = {
             "example": {
                 "payment_type": "paystack", # paystack, flutterwave etc
-                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D", 
-                "amount": 1500.75                
+                "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D"             
             }
         }
 

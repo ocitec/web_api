@@ -736,7 +736,11 @@ class AmadeusEnterpriseAPI:
                 "source": offer["source"],
                 "validating_airline": offer["validatingAirlineCodes"],
                 "included_checked_BagOnly": offer["pricingOptions"]["includedCheckedBagsOnly"],
-                "pricing": offer["pricing"],
+                "pricing": {
+                    "total": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["total"])),
+                    "base": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["base"])),
+                    "grand_total": self.convert_usd_to_ngn(self.apply_markup(offer["price"]["grandTotal"])),
+                },
                 "traveler_pricings": offer["travelerPricings"],
 
             })

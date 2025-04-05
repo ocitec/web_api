@@ -75,6 +75,7 @@ class PaystackPayment:
 
 
                     # send email notification to team
+                    bookingDetails = await amadeus_flight_bookings.find_one({"_id": ObjectId(booking_id)})
                     c = await email_service.payment_notification(bookingDetails)
 
 

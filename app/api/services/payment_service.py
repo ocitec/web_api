@@ -39,30 +39,15 @@ class PaystackPayment:
     async def verify_payment(self, verify_params:dict):
         
         try:
-            # check if reference status
 
             verify_url = f"{self.url}/transaction/verify/{verify_params['reference_id']}"
 
-            # async with httpx.AsyncClient() as client:
-            #     response = await client.get(verify_url, headers=self.headers)
-            response = {
-                "status_code": 200,
-                "data": {
-                    "status": "success",
-                    "reference_id": "TXN567890",
-                    "amount": 123456789,
-                    "currency": "NGN",
-                    "payment_channel": "CARD",
-                    "paid_at": datetime.utcnow().isoformat(),
-                    "customer": {
-                        "email": "user@email.com",
-                        "phone": "1234567890"
-                    }
-                }
-            }
+            async with httpx.AsyncClient() as client:
+                response = await client.get(verify_url, headers=self.headers)
+                response_data = response.json()
 
-            if response["status_code"] == 200:
-                transaction_data = response
+            if response_data["status"] == True:
+                transaction_data = response_data
                 payment_status = transaction_data["data"]["status"]
                 booking_id = verify_params["booking_id"]
                 reference_id = verify_params["reference_id"]
@@ -71,25 +56,6 @@ class PaystackPayment:
                 if payment_status == "success":
                     # Save payment record after successful verification
                     payment = await self.save_payment_record(transaction_data["data"])
-
-                    # fetch booking record
-                    bookingDetails = await amadeus_flight_bookings.find_one({"_id": ObjectId(booking_id)})
-
-                    # issue the booking ticket
-                    # bookingOrderId = bookingDetails["data"]["id"]
-                    # orderData = {
-                    #     "order_id": bookingOrderId,
-                    #     "formOfPayment": {
-                    #         "other":
-                    #         {
-                    #             "method" : "CASH"
-                    #         }
-                    #     } 
-                    # }
-                    # issueTicket = await amadeus_api.flight_issue(orderData=orderData)
-
-                    # if issueTicket:
-                    #     pass
 
                     # Update booking status in the database
                     update_data = {
@@ -106,15 +72,17 @@ class PaystackPayment:
 
                     if update_result.modified_count == 0:
                         raise HTTPException(status_code=404, detail="Booking not found or update failed.")
-                    
-                    # send email notification 
-                    await email_service.send_email(bookingDetails)
+
+
+                    # send email notification to team
+                    c = await email_service.payment_notification(bookingDetails)
+
 
                     return {
                         "status": "Verified",
                         "booking_id": booking_id,
                         "reference_id": reference_id,
-                        "message": "Payment Verified"
+                        "message": "Payment Verified" 
                     }
 
                 else:

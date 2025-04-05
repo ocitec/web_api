@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from app.config import AMADEUS_BASE_URL, AMADEUS_AUTH_URL, AMADEUS_CLIENT_ID, AMADEUS_CLIENT_SECRET
 from app.api.db.collections import amadeus_flight_offers, amadeus_flight_pricing, amadeus_flight_bookings, airports_collection
 from app.api.services.helper import get_current_date, coy_profile, convertDateTime, iataCarrier, airportName, calculate_total_time
-
+from app.api.services.fareRules import flightRules
 
 # Create a session
 session = requests.Session()
@@ -126,7 +126,6 @@ class AmadeusEnterpriseAPI:
             raise HTTPException(status_code=500, detail=f"Error in make_search_request: {str(e)}")
     
 
-
     def convert_date_to_time(self, value):
         # convert 2025-04-09T11:45:00 to HH:MM
         datetime_obj = datetime.fromisoformat(value)
@@ -144,6 +143,8 @@ class AmadeusEnterpriseAPI:
         hours = match.group(1)[:-1] if match.group(1) else "0"
         minutes = match.group(2)[:-1] if match.group(2) else "0"
         return f"{hours}h {minutes}m"
+
+    
 
     def convert_usd_to_ngn(self, usd_amount):
         
@@ -164,15 +165,52 @@ class AmadeusEnterpriseAPI:
         
         return f"{int(hours)}h {int(minutes)}m"
 
-    def flight_rule(self, refundable=False):
-        if refundable == True:
-            return {
-                "rule": "Fare Rule for refundable"
-            }
-        else:
-            return {
-                "rule": "Fare Rule for nonrefundable"
-            }
+    def flight_rule(self, fareRules):
+        rule_list = {}
+        rule_list["rules"] = []
+        
+        if fareRules and "rules" in fareRules:  # Ensure fareRules and "rules" are present
+            for rule in fareRules["rules"]:
+                # Extract max penalty if present
+                max_penalty = self.convert_usd_to_ngn(rule.get("maxPenaltyAmount", 0))
+
+                # Handle each category type
+                if rule["category"] == "EXCHANGE":
+                    msg = flightRules.exchange_rule(maxPenaltyAmount=max_penalty)
+                    rule_list["rules"].append({
+                        "category": "EXCHANGE",
+                        "message": msg
+                    })
+
+                elif rule["category"] == "REVALIDATION":
+                    msg = flightRules.revalidation_rule()
+                    rule_list["rules"].append({
+                        "category": "REVALIDATION",
+                        "message": msg
+                    })
+
+                elif rule["category"] == "REFUND":
+                    msg = flightRules.refund_rule(maxPenaltyAmount=max_penalty)
+                    rule_list["rules"].append({
+                        "category": "REFUND",
+                        "message": msg
+                    })
+
+                elif rule["category"] == "REISSUE":
+                    msg = flightRules.reissue(maxPenaltyAmount=max_penalty)
+                    rule_list["rules"].append({
+                        "category": "REISSUE",
+                        "message": msg
+                    })
+
+                elif rule["category"] == "CANCELLATION":
+                    msg = flightRules.cancellation(maxPenaltyAmount=max_penalty)
+                    rule_list["rules"].append({
+                        "category": "CANCELLATION",
+                        "message": msg
+                    })
+
+        return rule_list
 
     
     async def aita_code_det(self, aita_code):
@@ -194,7 +232,8 @@ class AmadeusEnterpriseAPI:
                     return {
                         "class": segment["class"],
                         "cabin": segment["cabin"],
-                        "baggage": segment.get("includedCheckedBags", {}).get("quantity", "Unknown"),
+                        "baggage": segment.get("includedCheckedBags", {}).get("quantity", 0),
+                        "cabin_baggage": segment.get("includedCabinBags", {}).get("quantity", 0),
                         "fare_basis": segment.get("fareBasis", "Unknown"),
                         "is_refundable": "Yes" if "REFUNDABLE" in segment.get("fareBasis", "").upper() else "No"
                     }
@@ -209,9 +248,6 @@ class AmadeusEnterpriseAPI:
 
         # Initialize the 'data' key as a list to handle multiple offers
         formatted_results["data"] = []
-
-        # fare rule
-        fare_rule = None
 
         # Process each offer in the response data
         for offer in response_data.get("data", []):
@@ -236,8 +272,13 @@ class AmadeusEnterpriseAPI:
                     "included_checked_BagOnly": offer["pricingOptions"]["includedCheckedBagsOnly"]
                 },
                 "validating_airline": offer["validatingAirlineCodes"],
-                "itineraries": []
+                "itineraries": [],
+                "fare_rules": []
             }
+
+            # fare rule
+            fare_rule = self.flight_rule(offer["fareRules"])
+            formatted_offer["fare_rules"].append(fare_rule)
 
             # Process each itinerary for the current offer
             for itinerary in offer["itineraries"]:
@@ -255,9 +296,7 @@ class AmadeusEnterpriseAPI:
                     airline_code = segment["carrierCode"]
 
                     fare_details = self.get_fare_details(offer, segment["id"])
-                    if not fare_rule:
-                        fare_rule = self.flight_rule(refundable=fare_details.get("is_refundable", False))
-
+                    
                     formatted_segment = {
                         "departure": {
                             "airport": {
@@ -308,7 +347,6 @@ class AmadeusEnterpriseAPI:
             formatted_results["data"].append(formatted_offer)
 
         # Add 'dictionaries' and 'data_id' to the formatted results
-        formatted_results["fare_rules"] = fare_rule
         formatted_results["dictionaries"] = dictionaries
         formatted_results["data_id"] = str(_id)
 
@@ -411,6 +449,7 @@ class AmadeusEnterpriseAPI:
                     "traveler_id": traveler.get("travelerId"),
                     "fare_option": traveler.get("fareOption"),
                     "traveler_type": traveler.get("travelerType"),
+                    "base_price": self.convert_usd_to_ngn(self.apply_markup(traveler.get("price", {}).get("base", 0))),
                     "total_price": self.convert_usd_to_ngn(self.apply_markup(traveler.get("price", {}).get("total", 0))),
                     "segments": []
                 }
@@ -601,114 +640,113 @@ class AmadeusEnterpriseAPI:
             raise HTTPException(status_code=500, detail=f"Error in get_flight_pricing: {str(e)}")
 
 
-    async def book_flight_order(self, flight_offer: dict, travelers: list):
+    # async def book_flight_order(self, flight_offer: dict, travelers: list):
+        """Handles the flight booking process and stores the result in the database."""
+
+        # flight_order = FlightBookingService(self.base_url, self.get_access_token())
         
-        try:
+        # f = await flight_order.book_flight_order(flight_offer=flight_offer, travelers=travelers);
+
+        # try:
+        #     # Validate flight offer format
+        #     if not flight_offer.get("data") or "flightOffers" not in flight_offer["data"]:
+        #         raise HTTPException(status_code=400, detail="Invalid flight offer format.")
+
+        #     # Fetch company profile
+        #     coy = await coy_profile()
+
+        #     # Construct the booking payload
+        #     payload = {
+        #         "data": {
+        #             "type": "flight-order",
+        #             "flightOffers": flight_offer["data"]["flightOffers"],
+        #             "travelers": travelers,
+        #             "remark": {
+        #                 "general": [
+        #                     {
+        #                         "subType": "OCI",
+        #                         "text": f"ONLINE BOOKING FROM {coy.get('coy_name', 'OCI')}"
+        #                     }
+        #                 ]
+        #             },
+        #             "ticketingAgreement": {
+        #                 "option": "DELAY_TO_CANCEL",
+        #                 "delay": "2D"
+        #             },
+        #             "contacts": [
+        #                 {
+        #                     "addresseeName": {
+        #                         "firstName": coy.get("contact_firstname", "Busayo"),
+        #                         "lastName": coy.get("contact_lastname", "Afolabi"),
+        #                     },
+        #                     "companyName": "OCI",
+        #                     "purpose": "STANDARD",
+        #                     "phones": [
+        #                         {
+        #                             "deviceType": "LANDLINE",
+        #                             "countryCallingCode": coy.get("country_code", "234"),
+        #                             "number": coy.get("agency_phone_number", ""),
+        #                         },
+        #                         {
+        #                             "deviceType": "MOBILE",
+        #                             "countryCallingCode": coy.get("country_code", "234"),
+        #                             "number": coy.get("agency_phone_number", "234"),
+        #                         }
+        #                     ],
+        #                     "emailAddress": coy.get("agency_email", "info@ocitravels.com"),
+        #                     "address": {
+        #                         "lines": [coy.get("address_1", "Lekki Phase 1")],
+        #                         "postalCode": coy.get("postal_code", "100001"),
+        #                         "cityName": coy.get("city", "Lagos"),
+        #                         "countryCode": coy.get("countryIataCode", "NG"),
+        #                     }
+        #                 }
+        #             ]
+        #         }
+        #     }
+
+        #     # Send request to Amadeus API
+        #     token = self.get_access_token()
+        #     url = f"{self.base_url}/v1/booking/flight-orders"
+        #     headers = {
+        #         "Authorization": f"Bearer {token}",
+        #         "Content-Type": "application/json"
+        #     }
+
+        #     async with httpx.AsyncClient(timeout=60) as client:
+        #         response = await client.post(url, json=payload, headers=headers)
+
+        #     # Handle API response
+        #     if response.status_code == 201:
+        #         booking_data = response.json()
+        #         booking_data.update({
+        #             "source": "Amadeus",
+        #             "date": datetime.utcnow().isoformat(),
+        #             "payment": {
+        #                 "status": "pending",
+        #                 "payment_reference_id": None,
+        #                 "payment_id": None,
+        #                 "payment_date": None
+        #             },
+        #             "status": "Booked"
+        #         })
+
+        #         # Store booking in database
+        #         insert_result = await amadeus_flight_bookings.insert_one(booking_data)
+        #         booking_data["bookingId"] = str(insert_result.inserted_id)
+
+        #         return await self.format_flight_booking(booking_data)
             
-            if "data" not in flight_offer or "flightOffers" not in flight_offer["data"]:
-                raise HTTPException(status_code=400, detail="Invalid flight offer format.")
+        #     # Raise exception if booking fails
+        #     response_data = response.json()
+        #     raise HTTPException(status_code=response.status_code, detail=f"Failed to book flight: {response_data}")
 
-            # get coy information
-            coy = await coy_profile()
+        # except HTTPException as e:
+        #     raise e  # Re-raise FastAPI exceptions for proper HTTP response
 
+        # except Exception as e:
+        #     raise HTTPException(status_code=500, detail=f"Unexpected error booking flight: {str(e)}")
 
-            payload = {
-                "data": {
-                    "type": "flight-order",
-                    "flightOffers": flight_offer["data"]["flightOffers"], 
-                    "travelers": travelers, 
-                    "remark": {
-                        "general": [
-                            {
-                                "subType": "OCI",
-                                "text": f"ONLINE BOOKING FROM {coy.get('coy_name', 'OCI')}" 
-                            }
-                        ]
-                    },
-                    "ticketingAgreement": {
-                        "option": "DELAY_TO_CANCEL",
-                        "delay": "2D" 
-                    },
-                    
-                      "contacts": [
-                        {
-                          "addresseeName": {
-                            "firstName": f"{coy.get('contact_firstname', 'Busayo')}",
-                            "lastName": f"{coy.get('contact_lastname', 'Afolabi')}",
-                          },
-                          "companyName": "OCI",
-                          "purpose": "STANDARD",
-                          "phones": [
-                            {
-                              "deviceType": "LANDLINE",
-                              "countryCallingCode": f"{coy.get('country_code', '234')}",
-                              "number": f"{coy.get('agency_phone_number', '')}"
-                            },
-                            {
-                              "deviceType": "MOBILE",
-                              "countryCallingCode": f"{coy.get('country_code', '234')}",
-                              "number": f"{coy.get('agency_phone_number', '234')}",
-                            }
-                          ],
-                          "emailAddress": f"{coy.get('agency_email', 'info@ocitravels.com')}",
-                          "address": {
-                            "lines": [
-                              f"{coy.get('address_1', 'Lekki Phase 1')}"
-                            ],
-                            "postalCode": f"{coy.get('postal_code', '100001')}",
-                            "cityName": f"{coy.get('city', 'Lagos')}",
-                            "countryCode": f"{coy.get('countryIataCode', 'NG')}"
-                          }
-                        }
-                      ]                  
-
-                }
-            }
-
-
-            token = self.get_access_token()
-            url = f"{self.base_url}/v1/booking/flight-orders"
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=payload, headers=headers, timeout=60)
-
-            # Handle response
-            if response.status_code == 201:
-                booking_data = response.json()
-
-                # source
-                booking_data['source'] = "Amadeus"
-                booking_data['date'] = get_current_date()
-
-                # add info
-                payment_info = {
-                    "status": "pending",
-                    "payment_reference_id": None,
-                    "payment_id": None,
-                    "payment_date": None
-                }
-
-                booking_data["payment"] = payment_info
-                booking_data["status"] = "booked"
-
-                # save booking data
-                insert_result = await amadeus_flight_bookings.insert_one(booking_data)
-                
-                # saved booking ID
-                booking_data["bookingId"] = str(insert_result.inserted_id)
-
-                return await self.format_flight_booking(booking_data)  # Format booking response
-            else:
-                raise HTTPException(status_code=response.status_code, detail=f"Failed to book flight: {response.json()}")
-
-        except HTTPException:
-            raise  
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Unexpected error booking flight: {str(e)}")
 
 
     async def format_flight_booking(self, response_data):
@@ -716,9 +754,10 @@ class AmadeusEnterpriseAPI:
         booking_data = response_data.get("data", {})
         payment_data = response_data.get("payment", {})
         status = response_data.get("status")
-        dictionaries = response_data.get("dictionaries", {})
+        dictionaries = response_data.get("dictionaries", {}) 
 
         formatted_booking = {
+            "status": 200,
             "booking_id": booking_id,
             "booking_reference": booking_data.get("id"),
             "status": status,

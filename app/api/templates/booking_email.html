@@ -15,6 +15,9 @@
         .justify-between {
           justify-content: space-between;
         }
+        .flex-column {
+            flex-direction: column;
+        }
         @media screen and (max-width: 768px){
             .d-flex {
                 flex-direction: column;
@@ -39,14 +42,26 @@
     </style>
 </head>
 <body>
-
+    {% set t = data.travelers[0] %}
     <div class="container">
-        <!-- Header -->
-        <div class="d-flex">
+        <div class="flex">
             <div style="min-width: 20%;">
                 <img src="http://cdn.mcauto-images-production.sendgrid.net/59e3864d3b5d32b8/5b85164e-d27f-4cde-a12c-a624093c336a/362x476.png" alt="brandlogo" width="70px" style="margin-right: 10px; padding: 5px" /> 
-            </div>
-            <div style="width: 80%">
+            </div>            
+        </div>
+        <!-- welcome message --> 
+        <div class="d-flex flex-column">
+            <h4 style="margin-bottom:5px;">Dear {{ t.name }},</h4>
+            <p style="margin-top:0px;">
+                Thank you for choosing to book your flight(s) with us. Below, you will find your Booking Confirmation. Please note that this is not your E-Ticket. Your ticket will be issued once we have confirmed your payment.
+            </p>
+            <p style="margin-top:0px;">
+            Kindly review your booking details below. If any of the information provided is incorrect, please contact us immediately by emailing <a href="mailto:info@ocitravels.com"> info@ocitravels.com</a> or calling us at <a href="tel:+2347061385128">+2347061385128</a>.
+            </p>
+        </div>
+        <!-- Header -->
+        <div class="d-flex">
+            <div style="width: 100%">
                 <h2 style="margin: 0; color: #333;">Flight Itinerary</h2>
                     <hr class="hr">
                     <div class="d-flex justify-between">
@@ -73,8 +88,6 @@
         <div class="section">
             <div class="d-flex justify-between">
                 <div class="flex-item" style="min-width: 300px">
-                    {% set t = data.travelers[0] %}
-
                     <!-- set Adult, Child, Infant -->
                     {% set counts = namespace(adult=0, child=0, infant=0) %}
 
@@ -88,12 +101,21 @@
                             {% set counts.infant = counts.infant + 1 %}
                         {% endif %}
                     {% endfor %}
+                    {% set result = [] %}
+                    {% if counts.adult > 0 %}
+                        {% set result = result + [counts.adult ~ " Adult(s)"] %}
+                    {% endif %}
+                    {% if counts.child > 0 %}
+                        {% set result = result + [counts.child ~ " Child(s)"] %}
+                    {% endif %}
+                    {% if counts.infant > 0 %}
+                        {% set result = result + [counts.infant ~ " Infant(s)"] %}
+                    {% endif %}
                     <div>
-                        <span style="color: #777; font-size: 14px;">Traveler's: 
+                        <span style="color: #777; font-size: 14px;">Traveler's Number: 
                         <br>
-                        <strong>{{ t.name }}</strong> <br>
                         <strong>+{{ t.phone }}</strong> <br><br>
-                        <span>{{ counts.adult }} Adult(s), {{ counts.child }} Child(s), {{ counts.infant }} Infant(s)</span> <br>
+                        <span>{{ result | join(', ') }}</span> <br>
                         </span>
                     </div>
                 </div>                
@@ -129,7 +151,7 @@
                     </div>
                     {% endif %}
 
-                    <h4 style="margin: 0; color: #333;">{{ y.departure.iata_code }} <span class="front-arrow"></span> {{ y.arrival.iata_code }}</h4><!-- using jinja template to get the airport name from the cod -->
+                    <h4 style="margin: 0; color: #333;">{{ y.departure.iata_code }} → {{ y.arrival.iata_code }}</h4><!-- using jinja template to get the airport name from the cod -->
                     
 
                     <div class="d-flex justify-between" style="margin-top:10px;">
@@ -195,6 +217,7 @@
 
         <!-- Fare Details -->
         <div class="section">
+            {% set pricing = data.flight_offers[0].pricing %}
             <h3 class="text-center">Fare Details</h3>
             <table class="table">
                 <tr>
@@ -202,12 +225,20 @@
                     <th>FARE</th>
                 </tr>
                 <tr>
-                    <td colspan="5" class="text-bold text-right">DESCRIPTION</td>
-                    <td class="text-normal">Adult X 10</td>
+                    <td colspan="5" class="text-bold text-right">PASSENGER</td>
+                    <td class="text-normal">{{ result | join(', ') }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" class="text-bold text-right">FARE</td>
-                    <td class="text-normal">187,736.00</td>
+                    <td colspan="5" class="text-bold text-right">BASE FARE</td>
+                    <td class="text-normal">{{ pricing.base }}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">TAX FARE</td>
+                    <td class="text-normal">{{ pricing.grand_total - pricing.base }}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">TOTAL FARE</td>
+                    <td class="text-normal">{{ pricing.total }}</td>
                 </tr>
                 <tr>
                     <td colspan="5" class="text-bold text-right">FEES</td>
@@ -219,18 +250,14 @@
                 </tr>
                 <tr>
                     <td colspan="5" class="text-bold text-right">TOTAL</td>
-                    <td class="text-normal">723,761.0</td>
-                </tr>
-                <tr>
-                    <td colspan="5" class="text-bold text-right">Grand Total</td>
-                    <td class="text-bold">NGN 723,761.00</td>
+                    <td class="text-bold">{{ pricing.grand_total }}</td>
                 </tr>
             </table>
         </div>
 
         <!-- Thank You Message -->
         <p class="text-center text-bold">Thank you for your purchase!</p>
-        <p class="text-center"><a href="{{booking_url}}" class="btn">View Booking</a></p>
+        <p class="text-center"><a href="{{data.booking_url}}" class="btn">View Booking</a></p>
     </div>
 
 </body>

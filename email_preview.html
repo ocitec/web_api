@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Travel Itinerary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 20px; border-radius: 5px; }
+        .hr { border-color: #ffbc0b }
+        .d-flex {
+          display: flex;
+        }        
+        .justify-between {
+          justify-content: space-between;
+        }
+        .flex-column {
+            flex-direction: column;
+        }
+        @media screen and (max-width: 768px){
+            .d-flex {
+                flex-direction: column;
+            }
+            .flex-item {
+                margin-bottom: 5px
+            }
+        }
+        .s-tittle{ color: #c00000 }
+        .section { border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        span{ font-size: 15px }
+        .section-layover{ padding-top: 0; padding-bottom: 0 }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+        .table th { background-color: #c00000; color: white; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+        .text-normal { font-weight: normal; }
+        .front-arrow::before { content: '→'; }
+        .back-arrow::before { content: '←'; }
+        .btn { background: #c00000; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="flex">
+            <div style="min-width: 20%;">
+                <img src="http://cdn.mcauto-images-production.sendgrid.net/59e3864d3b5d32b8/5b85164e-d27f-4cde-a12c-a624093c336a/362x476.png" alt="brandlogo" width="70px" style="margin-right: 10px; padding: 5px" /> 
+            </div>            
+        </div>
+        <!-- welcome message --> 
+        <div class="d-flex flex-column">
+            <h4 style="margin-bottom:5px;">Dear Goke Aare,</h4>
+            <p style="margin-top:0px;">
+                Thank you for choosing to book your flight(s) with us. Below, you will find your Booking Confirmation. Please note that this is not your E-Ticket. Your ticket will be issued once we have confirmed your payment.
+            </p>
+            <p style="margin-top:0px;">
+            Kindly review your booking details below. If any of the information provided is incorrect, please contact us immediately by emailing <a href="mailto:info@ocitravels.com"> info@ocitravels.com</a> or calling us at <a href="tel:+2347061385128">+2347061385128</a>.
+            </p>
+        </div>
+        <!-- Header -->
+        <div class="d-flex">
+            <div style="width: 100%">
+                <h2 style="margin: 0; color: #333;">Flight Itinerary</h2>
+                    <hr class="hr">
+                    <div class="d-flex justify-between">
+                        <div class="flex-item">
+                            <span style="color: #777; font-size: 14px;">Booking Status:
+                                <br><strong>Booked</strong>
+                            </span>
+                        </div>                        
+                        <div class="flex-item">
+                            <span style="color: #777; font-size: 14px;">Payment Status:
+                            <br><strong>pending</strong>
+                            </span>
+                        </div>
+                        <div class="flex-item">
+                            <span style="color: #777; font-size: 14px;">PNR:
+                            <br><strong>SZBX7D</strong>
+                            </span>
+                        </div>
+                    </div>
+            </div>
+        </div>
+        <hr class="hr">
+        <!-- Information -->
+        <div class="section">
+            <div class="d-flex justify-between">
+                <div class="flex-item" style="min-width: 300px">
+                    <!-- set Adult, Child, Infant -->
+                    
+
+
+                    
+                        
+                            
+                        
+                    
+                    
+                    
+                        
+                    
+                    
+                    
+                    <div>
+                        <span style="color: #777; font-size: 14px;">Traveler's Number: 
+                        <br>
+                        <strong>+23423411223344</strong> <br><br>
+                        <span>1 Adult(s)</span> <br>
+                        </span>
+                    </div>
+                </div>                
+                <div class="flex-item">
+                    <div>
+                        
+                        <span style="color: #777; font-size: 14px;">Agency Information: 
+                        <br>
+                        <span>Name: </span><strong>OCI Travels and Tourism</strong><br>
+                        <span>Address: </span><strong>37B Fola Osibo Street Lekki Phase 1</strong><br>
+                        <span>Telephone: </span><strong><a href="tel:+23409876542342">+234 09876542342</a></strong><br>
+                        <span>Email: </span><strong><a href="tel:tech@ocitravels.com">tech@ocitravels.com</a></strong><br>                        
+                        
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Segment Section -->
+        <div class="section">
+            <!-- segment -->
+            
+            
+                
+                
+                
+                <div>
+                    <!-- if layover -->
+                    
+
+                    <h4 style="margin: 0; color: #333;">LOS → IST</h4><!-- using jinja template to get the airport name from the cod -->
+                    
+
+                    <div class="d-flex justify-between" style="margin-top:10px;">
+                        <!-- Departure -->
+                        <div class="flex-item" style="min-width: 50%; margin-right:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Departure:</strong> </p>
+                                    <span>Murtala Muhammed International Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Fri, May 16, 2025, 09:00 PM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Arrival -->
+                        <div class="flex-item" style="min-width: 50%;margin-left:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Arrival:</strong> </p>
+                                    <span>Istanbul Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Sat, May 17, 2025, 05:35 AM</span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex" style="padding:0px 0px 0px 15px;">
+                        <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight</strong>
+                            </p>
+                            <small>
+                                <img src="https://www.gstatic.com/flights/airline_logos/70px/TK.png" alt="aircraftlogo" width="15px" style="" /> 
+                                TK 626
+                            </small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Class</strong>
+                            </p>
+                            <small>ECONOMY - V</small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight Duration</strong>
+                            </p>
+                            <small>6h 35m</small>
+                        </div>                    
+                    </div>
+                </div>
+                <hr>
+                
+                
+                <div>
+                    <!-- if layover -->
+                    
+                    <div class="section section-layover" style="background-color: #ffbc0b; border-color: #ffbc0b" >
+                        <p>Layover: <strong>1h 10m</strong></p>
+                    </div>
+                    
+
+                    <h4 style="margin: 0; color: #333;">IST → DXB</h4><!-- using jinja template to get the airport name from the cod -->
+                    
+
+                    <div class="d-flex justify-between" style="margin-top:10px;">
+                        <!-- Departure -->
+                        <div class="flex-item" style="min-width: 50%; margin-right:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Departure:</strong> </p>
+                                    <span>Istanbul Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Sat, May 17, 2025, 06:45 AM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Arrival -->
+                        <div class="flex-item" style="min-width: 50%;margin-left:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Arrival:</strong> </p>
+                                    <span>Dubai International Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Sat, May 17, 2025, 12:20 PM</span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex" style="padding:0px 0px 0px 15px;">
+                        <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight</strong>
+                            </p>
+                            <small>
+                                <img src="https://www.gstatic.com/flights/airline_logos/70px/TK.png" alt="aircraftlogo" width="15px" style="" /> 
+                                TK 764
+                            </small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Class</strong>
+                            </p>
+                            <small>ECONOMY - V</small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight Duration</strong>
+                            </p>
+                            <small>4h 35m</small>
+                        </div>                    
+                    </div>
+                </div>
+                <hr>
+                
+                
+            
+                
+                
+                
+                <div>
+                    <!-- if layover -->
+                    
+
+                    <h4 style="margin: 0; color: #333;">DXB → IST</h4><!-- using jinja template to get the airport name from the cod -->
+                    
+
+                    <div class="d-flex justify-between" style="margin-top:10px;">
+                        <!-- Departure -->
+                        <div class="flex-item" style="min-width: 50%; margin-right:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Departure:</strong> </p>
+                                    <span>Dubai International Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Tue, May 27, 2025, 07:55 AM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Arrival -->
+                        <div class="flex-item" style="min-width: 50%;margin-left:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Arrival:</strong> </p>
+                                    <span>Istanbul Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Tue, May 27, 2025, 11:50 AM</span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex" style="padding:0px 0px 0px 15px;">
+                        <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight</strong>
+                            </p>
+                            <small>
+                                <img src="https://www.gstatic.com/flights/airline_logos/70px/TK.png" alt="aircraftlogo" width="15px" style="" /> 
+                                TK 763
+                            </small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Class</strong>
+                            </p>
+                            <small>ECONOMY - V</small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight Duration</strong>
+                            </p>
+                            <small>4h 55m</small>
+                        </div>                    
+                    </div>
+                </div>
+                <hr>
+                
+                
+                <div>
+                    <!-- if layover -->
+                    
+                    <div class="section section-layover" style="background-color: #ffbc0b; border-color: #ffbc0b" >
+                        <p>Layover: <strong>2h 20m</strong></p>
+                    </div>
+                    
+
+                    <h4 style="margin: 0; color: #333;">IST → LOS</h4><!-- using jinja template to get the airport name from the cod -->
+                    
+
+                    <div class="d-flex justify-between" style="margin-top:10px;">
+                        <!-- Departure -->
+                        <div class="flex-item" style="min-width: 50%; margin-right:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Departure:</strong> </p>
+                                    <span>Istanbul Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Tue, May 27, 2025, 02:10 PM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Arrival -->
+                        <div class="flex-item" style="min-width: 50%;margin-left:5px">
+                            <div class="section" style="padding-top: 0">
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Arrival:</strong> </p>
+                                    <span>Murtala Muhammed International Airport</span>
+                                </div>
+                                <div>
+                                    <p class="s-tittle" style="margin-bottom: 5px"><strong>Date / Time:</strong> </p>
+                                    <span>Tue, May 27, 2025, 07:15 PM</span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex" style="padding:0px 0px 0px 15px;">
+                        <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight</strong>
+                            </p>
+                            <small>
+                                <img src="https://www.gstatic.com/flights/airline_logos/70px/TK.png" alt="aircraftlogo" width="15px" style="" /> 
+                                TK 625
+                            </small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Class</strong>
+                            </p>
+                            <small>ECONOMY - V</small>
+                        </div>
+                         <div class="flex-item" style="min-width: 33.3%;">
+                            <p class="s-tittle" style="margin-bottom: 5px; margin-top: 0; color: #333;">
+                                <strong>Flight Duration</strong>
+                            </p>
+                            <small>7h 5m</small>
+                        </div>                    
+                    </div>
+                </div>
+                <hr>
+                
+                
+            
+            
+        </div>
+
+
+        <!-- Fare Details -->
+        <div class="section">
+            
+            <h3 class="text-center">Fare Details</h3>
+            <table class="table">
+                <tr>
+                    <th colspan="5">DESCRIPTION</th>
+                    <th>FARE</th>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">PASSENGER</td>
+                    <td class="text-normal">1 Adult(s)</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">BASE FARE</td>
+                    <td class="text-normal">63000.0</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">FEES</td>
+                    <td class="text-normal">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">CURRENCY</td>
+                    <td class="text-normal">NGN</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">TOTAL</td>
+                    <td class="text-bold">939180.0</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Thank You Message -->
+        <p class="text-center text-bold">Thank you for your purchase!</p>
+        <p class="text-center"><a href="http://localhost:5173/manage/booking/order/ZUp6VGQ5Y1BqbktLTUhjQkFBdW5BbWclM0Q=" class="btn">View Booking</a></p>
+    </div>
+
+</body>
+</html>

@@ -1,13 +1,16 @@
-from fastapi import APIRouter, HTTPException, Depends, Path
+from fastapi import APIRouter, HTTPException, Depends, Path, Query
 from bson import ObjectId, errors
 from typing import Dict
-from app.api.services.amadeus_service import AmadeusEnterpriseAPI
+# from app.api.services.amadeus_service import AmadeusEnterpriseAPI
+from app.api.services.flightBookingService import FlightBookingService
 from app.api.services.auth_service import get_current_admin_user
-from app.api.db.collections import flight_bookings_collection, amadeus_flight_pricing
+from app.api.db.collections import flight_bookings_collection, amadeus_flight_pricing, amadeus_flight_bookings
 from app.api.models.flight_booking import FlightBookingRequest, FlightBookingOrder, FlightOrderIssuarance
+import logging
+
 
 router = APIRouter()
-amadeus_api = AmadeusEnterpriseAPI()
+amadeus_api = FlightBookingService()
 
 
 @router.post("/flight-order", tags=["Flights"],
@@ -16,7 +19,7 @@ amadeus_api = AmadeusEnterpriseAPI()
 async def book_flight_order_route(
     payload: FlightBookingRequest
 ):
-
+ 
     try:
         # Validate ObjectId before query
         try:
@@ -38,7 +41,6 @@ async def book_flight_order_route(
         no_of_travelers = len(flight_offers[0]["travelerPricings"])
         if len(payload.travelers) != no_of_travelers:
             raise HTTPException(status_code=409, detail="Number of travelers mismatch.")
-
         # Process booking
         booking_details = await amadeus_api.book_flight_order(record["flight_pricing"], payload.travelers)
 
@@ -53,26 +55,52 @@ async def book_flight_order_route(
 
 @router.post("/order_issue", tags=["Flights"], summary="", description="")
 async def ticket(request: FlightOrderIssuarance):
-    # try:
-    ticket = await amadeus_api.flight_issue(orderData=request.dict())
+    try:
+        ticket = await amadeus_api.flight_issue(orderData=request.dict())
 
-    if ticket == False:
+        if ticket == False:
+            raise HTTPException(status_code=500, detail=f"Error Issuring Ticket: {str(e)}")
+        
+        return ticket
+
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error Issuring Ticket: {str(e)}")
-    
-    return ticket
-
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=f"Error Issuring Ticket: {str(e)}")
 
 
 
 
-@router.get("/booking-order", tags=["Flights"],
+@router.get(
+    "/booking-order", 
+    tags=["Flights"],
     summary="Fetch booking record",
-    description="This endpoint fetch booking record for modification.")
-async def get_bookings(payload: FlightBookingOrder):
+    description="This endpoint fetches a booking record for modification."
+)
+async def get_bookings(
+    booking_id: str = Query(..., description="The booking ID"),
+    reference: str = Query(..., description="The reference ID")
+):
 
-    return {"status": "success", "data": "bookings Data"}
+    try:
+        booking_record = await amadeus_flight_bookings.find_one(
+            { 
+                "_id": ObjectId(booking_id), 
+                "data.id": reference  # Fixed array notation
+            }
+        )
+
+        if not booking_record:
+            raise HTTPException(status_code=404, detail="Booking record not found")
+
+        # Convert ObjectId to string safely
+        booking_record["id"] = str(booking_record["_id"])
+        del booking_record["_id"]
+
+        return {"status": "success", "data": booking_record}
+
+    except Exception as e:
+        logging.error(f"Error fetching record: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 
 
 @router.delete("/cancel/{booking_id}", tags=["Flights"],

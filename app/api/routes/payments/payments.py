@@ -37,7 +37,6 @@ async def initiate_payment(request: PaymentRequest):
     summary="verify payment",
     description="")
 async def verify_payment(request: PaymentVerificationRequest):
-    
     validate_payment = await paystack.verify_payment(request.dict())
 
     if validate_payment:

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Notification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 20px; border-radius: 5px; }
+        .hr { border-color: #ffbc0b }
+        .d-flex {
+          display: flex;
+        }        
+        .justify-between {
+          justify-content: space-between;
+        }
+        .flex-column {
+            flex-direction: column;
+        }
+        @media screen and (max-width: 768px){
+            .d-flex {
+                flex-direction: column;
+            }
+            .flex-item {
+                margin-bottom: 5px
+            }
+        }
+        .s-tittle{ color: #c00000 }
+        .section { border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        span{ font-size: 15px }
+        .section-layover{ padding-top: 0; padding-bottom: 0 }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+        .table th { background-color: #c00000; color: white; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+        .text-normal { font-weight: normal; }
+        .front-arrow::before { content: '→'; }
+        .back-arrow::before { content: '←'; }
+        .btn { background: #c00000; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    {% set f = data.itineraries %}
+    <div class="container">
+        <div class="flex">
+            <div style="min-width: 20%;">
+                <img src="http://cdn.mcauto-images-production.sendgrid.net/59e3864d3b5d32b8/5b85164e-d27f-4cde-a12c-a624093c336a/362x476.png" alt="brandlogo" width="70px" style="margin-right: 10px; padding: 5px" /> 
+            </div>            
+        </div>
+        <!-- welcome message -->
+        <div class="d-flex flex-column">
+            <h4 style="margin-bottom:5px;">Dear Team,</h4>
+            <p style="margin-top:0px;">
+                Please note that a booking reservation has been made on the website. Kindly find the details below for your follow-up.
+            <br><br>
+                Best regards,
+            </p>
+        </div>
+        <!-- Fare Details -->
+        <div class="section">
+            <h3 class="text-center">Booking Details</h3>
+            {% set counts = namespace(adult=0, child=0, infant=0) %}
+
+            {% for x in data.flight_offers[0].traveler_pricings %}
+                {% if x.travelerType == "ADULT" %}
+                    {% set counts.adult = counts.adult + 1 %}
+                {% elif x.travelerType == "CHILD" %}
+                    {% set counts.child = counts.child + 1 %}
+                {% elif x.travelerType == "INFANT" %}
+                    {% set counts.infant = counts.infant + 1 %}
+                {% endif %}
+            {% endfor %}
+            {% set result = [] %}
+            {% if counts.adult > 0 %}
+                {% set result = result + [counts.adult ~ " Adult(s)"] %}
+            {% endif %}
+            {% if counts.child > 0 %}
+                {% set result = result + [counts.child ~ " Child(s)"] %}
+            {% endif %}
+            {% if counts.infant > 0 %}
+                {% set result = result + [counts.infant ~ " Infant(s)"] %}
+            {% endif %}
+
+            <table class="table">
+                <tr>
+                    <th colspan="5">PAYMENT STATUS</th>
+                    <th>{{ data.payment.payment_status }}</th> 
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">BOOKING ID</td>
+                    <td class="text-normal">{{ data.associated_records[0].reference }}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">PASSENGER</td>
+                    <td class="text-normal">{{ result | join(', ') }}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">TRIP TYPE</td>
+                    <td class="text-normal">
+                        {% if data.itineraries|length > 2 %}
+                            {{ "Multi-City Trip" }}
+                        {% elif data.itineraries|length > 1 %}
+                            {{ "Return Trip" }}
+                        {% elif data.itineraries|length == 1 %}
+                            {{ "One Way Trip" }}
+                        {% endif %}
+
+                    </td>
+                </tr>
+                <tr>
+                    {% set itinaryLength = data.itineraries | length  %}
+                    {% set segmentLength = data.itineraries | length  %}
+                    <td colspan="5" class="text-bold text-right">DEPARTURE / DATE</td>
+                    <td class="text-normal">
+                        {{ data.itineraries[0].segments[0].departure.iata_code }} 
+                        <br>
+                        {{ data.itineraries[0].segments[0].departure.time }} 
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-bold text-right">ARRIVAL / DATE</td>
+                    <td class="text-normal">{{ data.itineraries[itinaryLength - 1].segments[0].departure.iata_code }} 
+                    <br>
+                    {{ data.itineraries[itinaryLength - 1].segments[0].departure.time }} </td>
+                </tr>
+                {% set pricing = data.flight_offers[0].pricing %}
+                <tr>
+                    <td colspan="5" class="text-bold text-right">Grand Total</td>
+                    <td class="text-bold">NGN {{ pricing.grand_total }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

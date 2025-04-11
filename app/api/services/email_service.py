@@ -6,7 +6,7 @@ import logging
 from jinja2 import Template
 from app.config import SENDGRID_API_KEY, EMAIL_SENDER, APP_URL
 from app.api.services.helper import coy_profile
-from app.api.services.amadeus_service import amadeus_api
+from app.api.formatter import formatter
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
@@ -42,7 +42,7 @@ class EmailService:
             bookingId = booking_data["data"]["id"]
 
             booking_data["_id"] = str(booking_data["_id"])            
-            emailData =  await amadeus_api.format_flight_booking(booking_data)
+            emailData =  await formatter.format_flight_booking(booking_data)
             emailData["coy"] = coy
             emailData["booking_url"] = f"{self.app_url}/manage/booking/order/{ base64.b64encode(bookingId.encode("utf-8")).decode("utf-8")  }"
             
@@ -139,7 +139,7 @@ class EmailService:
     async def payment_notification(self, booking_data: dict):
         
         try:
-            emailData =  await amadeus_api.format_flight_booking(booking_data)
+            emailData =  await formatter.format_flight_booking(booking_data)
             
             headers = {
                 "Authorization": f"Bearer {self.api_key}",

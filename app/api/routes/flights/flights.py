@@ -73,10 +73,13 @@ async def search_flights_endpoint(payload: FlightSearchRequest = Body(...)):
     results = await amadeus_api.search_flights(origin_destinations, 
                                         payload.adults, payload.children, 
                                         payload.infants, payload.cabin[0])
-
     
     if "error" in results:
-        raise HTTPException(status_code=400, detail=results["error"])
+        return {
+            "status_code": 400,
+            "message": results["error"]
+        }
+        
 
     return results
 

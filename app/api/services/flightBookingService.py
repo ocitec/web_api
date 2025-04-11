@@ -6,6 +6,7 @@ from app.api.db.collections import amadeus_flight_bookings
 from app.api.services.amadeus_service import AmadeusEnterpriseAPI
 from app.api.services.helper import coy_profile
 from app.api.services.email_service import email_service
+from app.api.formatter import formatter
 
 class FlightBookingService(AmadeusEnterpriseAPI):
     
@@ -165,7 +166,12 @@ class FlightBookingService(AmadeusEnterpriseAPI):
 
             await self.handle_email(str(insert_result.inserted_id))
 
-            return await self.format_flight_booking(booking_data)
+            data = await formatter.format_flight_booking(booking_data)
+
+            return {
+                "status_code": 200,
+                "data": data
+            }
         
         # Handle error response
         response_data = response.json()

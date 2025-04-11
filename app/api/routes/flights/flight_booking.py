@@ -43,6 +43,7 @@ async def book_flight_order_route(
             raise HTTPException(status_code=409, detail="Number of travelers mismatch.")
         # Process booking
         booking_details = await amadeus_api.book_flight_order(record["flight_pricing"], payload.travelers)
+        print(booking_details);
 
         return booking_details
 
@@ -95,11 +96,14 @@ async def get_bookings(
         booking_record["id"] = str(booking_record["_id"])
         del booking_record["_id"]
 
-        return {"status": "success", "data": booking_record}
+        return {"status_code": 200, "data": booking_record}
 
     except Exception as e:
         logging.error(f"Error fetching record: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return {
+            "status_code": 500,
+            "message": "Internal server error"
+        }
 
 
 

@@ -43,7 +43,7 @@ app.include_router(agencymgt_router, prefix="/api/about")
 
 app.include_router(tour_packages_router, prefix="/api/tour")
 app.include_router(reservation_router, prefix="/api/tour")
-app.include_router(visa_router, prefix="/api/visa")
+app.include_router(visa_router, prefix="/api/visa", tags=["Visa"])
 app.include_router(destinations_router, prefix="/api/destinations")
 app.include_router(flight_deals_router, prefix="/api/flight-deals")
 app.include_router(currency_router, prefix="/api/currency", tags=["Currency"])

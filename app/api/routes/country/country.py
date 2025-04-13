@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query
-from app.api.db.collections import counutry_collection
+from app.api.db.collections import country_collection
 from app.api.models.country import Countries
 from typing import List
 
@@ -13,7 +13,7 @@ async def add_country(request: List[Countries]):
         iata_codes = [country["iata_code"] for country in country_data]
         names = [country["country"] for country in country_data]
         
-        existing_country_cursor = counutry_collection.find({
+        existing_country_cursor = country_collection.find({
             "$or": [
                 {"iata_code": {"$in": iata_codes}},
                 {"country": {"$in": names}}
@@ -31,7 +31,7 @@ async def add_country(request: List[Countries]):
         ]
         
         if country_data_add:
-            result = await counutry_collection.insert_many(country_data_add)
+            result = await country_collection.insert_many(country_data_add)
 
         return {
             "status": "success",
@@ -39,7 +39,10 @@ async def add_country(request: List[Countries]):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        return {
+            "status_code": 500,
+            "message": f"Internal server error: {str(e)}"
+        }
 
 
 @router.get("/search_countries", tags=["Country"], 
@@ -48,7 +51,7 @@ async def add_country(request: List[Countries]):
 async def search_countries(query: str = Query(..., min_length=2)):
 
     try:
-        search_results_cursor = counutry_collection.find(
+        search_results_cursor = country_collection.find(
             {"$or": [
                 {"iata_code": {"$regex": query, "$options": "i"}},
                 {"country": {"$regex": query, "$options": "i"}}
@@ -59,7 +62,10 @@ async def search_countries(query: str = Query(..., min_length=2)):
 
         return [{"iata_code": result["iata_code"], "name": result["country"]} for result in search_results]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        return {
+            "status_code": 500,
+            "message": f"Internal server error: {str(e)}"
+        }
 
 
 @router.get("/country_list", tags=["Airport"], 
@@ -69,15 +75,18 @@ async def list_countries():
 
     try:
         # Convert cursor to list (set length to None for all results)
-        countries = await counutry_collection.find({}).to_list(None)
+        countries = await country_collection.find({}).to_list(None)
 
         # Convert ObjectId to string
-        formatted_airports = [
+        formatted_countries = [
             {**airport, "_id": str(airport["_id"])} for airport in countries
         ]
 
-        return formatted_airports
+        return formatted_countries
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        return {
+            "status_code": 500,
+            "message": f"Internal server error: {str(e)}"
+        }
 

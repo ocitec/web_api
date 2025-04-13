@@ -1,7 +1,7 @@
 from app.database import database
 import pymongo
 
-counutry_collection = database["countries"]
+country_collection = database["countries"]
 airports_collection = database["airports"]
 carrier_collection = database["carriers"]
 amadeus_flight_offers = database["amadeus_flight_offers"]
@@ -14,6 +14,7 @@ flight_deals_collection = database["flight_deals"]
 tour_reservations_collection = database["tour_reservations"]
 tour_packages_collection = database["tour_packages"]
 visa_collection = database["visa"]
+visa_country_collection = database["visa_country"]
 
 agencymgt_collection = database["agencymgt"]
 currency_collection = database["currency"]

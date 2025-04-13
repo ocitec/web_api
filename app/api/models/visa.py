@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr
 from uuid import uuid4
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 # Pydantic model for Visa Application
@@ -81,3 +81,57 @@ class VisaRequetsResponse(BaseModel):
                 ]
             }
         }
+
+class VisaCountry(BaseModel):
+    _id: str
+    category: str
+    country: str
+    image: str
+
+class Country(BaseModel):
+    _id: str
+    iata_code: str
+    country: str
+    capital: str
+
+class VisaDetailsResponse(BaseModel):
+    status_code: int
+    visa_countries: List[VisaCountry]
+    countries: List[Country]
+    # nationalities: Dict[str, Any]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "visa_countries": [
+                    {"name": "United State", "category": "Tourist", "image": "https://"},
+                    {"name": "United Kingdom", "category": "Tourist", "image": "https://"},
+                    {"name": "Dubai", "category": "Tourist", "image": "https://"},
+                ],
+                "countries": [
+                    {
+                        "iata_code": "NG", 
+                        "country": "Nigeria", 
+                        "capital": "Abuja"
+                    }
+                ],
+
+            }
+        }
+
+
+class VisaCountries(BaseModel):
+    category: str
+    country: str
+    image: str
+    
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "category": "Tourist",
+                "country": "United States",
+                "image": "https://freeimage.com"
+            }
+        }
+

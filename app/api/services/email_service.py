@@ -44,7 +44,7 @@ class EmailService:
             booking_data["_id"] = str(booking_data["_id"])            
             emailData =  await formatter.format_flight_booking(booking_data)
             emailData["coy"] = coy
-            emailData["booking_url"] = f"{self.app_url}/manage/booking/order/{ base64.b64encode(bookingId.encode("utf-8")).decode("utf-8")  }"
+            emailData["booking_url"] = f"{self.app_url}/manage/booking/order/{ base64.b64encode(bookingId.encode('utf-8')).decode('utf-8')  }"
             
             passenger_email = emailData["travelers"][0]["email"]
 

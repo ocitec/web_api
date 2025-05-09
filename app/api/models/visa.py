@@ -68,6 +68,11 @@ class VisaApplicationResponse(BaseModel):
         }
 
 
+class VisaFee(BaseModel):
+    name: str
+    amount: float
+
+
 class VisaRequetsResponse(BaseModel):
     status: int
     data: Dict[str, Any]
@@ -83,33 +88,70 @@ class VisaRequetsResponse(BaseModel):
         }
 
 class VisaCountry(BaseModel):
-    _id: str
+    id: Optional[str] = Field(None, alias="_id")
     category: str
     country: str
+    amount: List[VisaFee]
     image: str
+    description: str
+    documents: str
+    faqs: str
+    
+
+    class Config:
+        populate_by_name = True
+        json_schema_extra = {
+            "example": {
+                "id": "#123456",
+                "category": "Tourist",
+                "country": "United States",
+                "amount": [
+                    {"name": "Adult", "amount": 200000.01},
+                    {"name": "Child", "amount": 150000}
+                ],
+                "image": "https://freeimage.com",
+                "description":"short details about the visa country",
+                "documents": "Documents required for the visa",
+                "faqs": "Frequently asked questions about the visa country"
+            }
+        }
+
 
 class Country(BaseModel):
-    _id: str
+    id: Optional[str] = Field(None, alias="_id")
     iata_code: str
     country: str
     capital: str
+
+    class Config:
+        populate_by_name = True
 
 class VisaDetailsResponse(BaseModel):
     status_code: int
     visa_countries: List[VisaCountry]
     countries: List[Country]
-    # nationalities: Dict[str, Any]
 
     class Config:
         json_schema_extra = {
             "example": {
                 "visa_countries": [
-                    {"name": "United State", "category": "Tourist", "image": "https://"},
-                    {"name": "United Kingdom", "category": "Tourist", "image": "https://"},
-                    {"name": "Dubai", "category": "Tourist", "image": "https://"},
+                    {
+                        "id": "1",
+                        "category": "Tourist",
+                        "country": "United States",
+                        "amount": [
+                            {"name": "Adult", "amount": 200000.01},
+                            {"name": "Child", "amount": 150000}
+                        ],
+                        "image": "https://",
+                        "description": "Visa info",
+                        "documents": "Passport, Photo",
+                        "faqs": "Some FAQs"
+                    },
                 ],
                 "countries": [
                     {
+                        "id": "1",
                         "iata_code": "NG", 
                         "country": "Nigeria", 
                         "capital": "Abuja"
@@ -120,18 +162,27 @@ class VisaDetailsResponse(BaseModel):
         }
 
 
-class VisaCountries(BaseModel):
-    category: str
-    country: str
-    image: str
+
+
+# class VisaCountries(BaseModel):
+#     category: str
+#     country: str
+#     amount: List[VisaFee]
+#     image: str
+#     description: str
+#     documents: str
+#     faqs: str
     
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "category": "Tourist",
-                "country": "United States",
-                "image": "https://freeimage.com"
-            }
-        }
+#     class Config:
+#         json_schema_extra = {
+#             "example": {
+#                 "category": "Tourist",
+#                 "country": "United States",
+#                 "image": "https://freeimage.com",
+#                 "description":"short details about the visa country",
+#                 "documents": "Documents required for the visa",
+#                 "faqs": "Frequently asked questions about the visa country"
+#             }
+#         }
 

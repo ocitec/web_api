@@ -41,7 +41,7 @@ async def verify_payment(request: PaymentVerificationRequest):
 
     if validate_payment:
         return PaymentVerificationResponse(
-            booking_id=validate_payment["booking_id"],
+            booking_id=validate_payment["booking_id"], 
             reference_id=validate_payment["reference_id"],
             status=validate_payment["status"],
             message=validate_payment["message"]
@@ -65,3 +65,21 @@ async def payment_status(reference_id: str):
         )
     else:
         raise HTTPException(status_code=404, detail="Transaction not found")
+
+
+@router.post("/verify_visa_payment", response_model=PaymentVerificationResponse,
+    summary="verify visa payment",
+    description="")
+async def verify_visa_payment(request: PaymentVerificationRequest):
+    # paystack
+    validate_payment = await paystack.verify_visa_payment(request.dict())
+
+    if validate_payment:
+        return PaymentVerificationResponse(
+            booking_id=validate_payment["booking_id"], 
+            reference_id=validate_payment["reference_id"],
+            status=validate_payment["status"],
+            message=validate_payment["message"]
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Invalid transaction ID")

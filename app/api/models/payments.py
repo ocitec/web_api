@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 from typing import Optional
 
 
@@ -33,10 +33,11 @@ class PaymentRequestResponse(BaseModel):
 # Payment Verification Model
 class PaymentVerificationRequest(BaseModel):
     booking_id: str
-    reference_id: str # payment reference ID
+    reference_id: str 
     payment_method: str
 
     class Config:
+        extra = Extra.allow
         json_schema_extra = {
             "example": {
                 "booking_id": "eJzTd9cPd3J3CgwGAAtcAmw%3D",

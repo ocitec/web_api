@@ -130,5 +130,82 @@ class PaystackPayment:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error saving payment record: {str(e)}")
 
+
+
+    def save_visa_record(self, data: dict):
+        """
+        Saves the verified payment transaction into the database.
+        """
+        try:
+            payment_record = {
+                "visa_type": data.get("visa_type"),
+                "visa_for": data.get("visa_for"),
+                "booking_id": data.get("booking_id"),
+                "reference": data.get("reference_id"),
+                "amount": data.get("amount") / 100,  # Convert from kobo to Naira (NGN)
+                "currency": data.get("currency"),
+                "status": data.get("status"),
+                "payment_channel": data.get("payment_channel"),
+                "paid_at": data.get("paid_at"),
+                "customer": {
+                    "email": data["customer"]["email"],
+                    "phone": data["customer"].get("phone", "N/A")
+                },
+                "created_at": datetime.utcnow().isoformat()
+            }
+
+            record = payment_collection.insert_one(payment_record) 
+            return record
+
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error saving payment record: {str(e)}")
+
+
+    async def verify_visa_payment(self, verify_params:dict):
+        
+        try:
+
+            verify_url = f"{self.url}/transaction/verify/{verify_params['reference_id']}"
+
+            async with httpx.AsyncClient() as client:
+                response = await client.get(verify_url, headers=self.headers)
+                response_data = response.json()
+
+            if response_data["status"] == True:
+                transaction_data = response_data
+                payment_status = transaction_data["data"]["status"]
+                transaction_data["data"]["visa_type"] = verify_params["visa_type"],
+                transaction_data["data"]["visa_for"] = verify_params["visa_for"],
+                transaction_data["data"]["booking_id"] = verify_params["booking_id"],
+                transaction_data["data"]["reference_id"] = verify_params["reference_id"]
+
+                if payment_status == "success":
+                    payment = await self.save_visa_record(transaction_data["data"])
+
+                    return {
+                        "status": "Verified",
+                        "booking_id": verify_params["booking_id"],
+                        "reference_id": verify_params["reference_id"],
+                        "message": "Payment Verified" 
+                    }
+
+                else:
+                    return {
+                        "status": "failed",
+                        "booking_id": booking_id,
+                        "reference_id": reference_id,
+                        "message": f"Payment not successful. Status: {payment_status}",
+                    }
+
+            else:
+                raise HTTPException(status_code=response.status_code, detail="Payment verification failed")
+
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=500, detail=f"Error verifying payment: {str(e)}")
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 # Create an instance of PaystackPayment
 paystack = PaystackPayment()

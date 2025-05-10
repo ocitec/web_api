@@ -31,6 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Register flight routes
 app.include_router(flights_router, prefix="/api/flights", tags=["Flights"])
 app.include_router(flight_booking_router, prefix="/api/flights/booking", tags=["Flights"])
@@ -52,7 +53,7 @@ app.include_router(country_router, prefix="/api/country", tags=["Country"])
 
 @app.get("/")
 def home():
-    return {"message": "Welcome to the Flight Booking API"}
+    return {"message": "OCI Booking API"}
 
 
 if __name__ == "__main__":

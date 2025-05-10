@@ -138,21 +138,21 @@ class PaystackPayment:
         """
         try:
             payment_record = {
-                "status": data['status'],
-                "visa_type": data['visa_type'],
-                "visa_for": data['visa_for'],
-                "booking_id": data['booking_id'],
-                "reference": data['reference'],
-                "amount": data['amount'] / 100,  # Convert from kobo to Naira (NGN)
-                "currency": data['currency'],
-                "payment_channel": data['channel'],
+                "status": data["status"],
+                "visa_type": data["visa_type"],
+                "visa_for": data["visa_for"],
+                "booking_id": data["booking_id"],
+                "reference": data["reference"],
+                "amount": data["amount"] / 100,  # Convert from kobo to Naira (NGN)
+                "currency": data["currency"],
+                "payment_channel": data["channel"],
                 "paid_at": data.get("paid_at"),
                 "customer": {
                     "email": data["customer"]["email"],
                     "phone": data["customer"].get("phone", "N/A"),
-                    "name": f'{data['customer'].get("title", "")} {data['customer'].get("first_name", "")} {data['customer'].get("last_name", "")}'
+                    "name": f'{data["customer"].get("title", "")} {data["customer"].get("first_name", "")} {data["customer"].get("last_name", "")}'
                 },
-                "message": data['customer'].get('message', ""),
+                "message": data["customer"].get("message", ""),
                 "created_at": datetime.utcnow().isoformat()
             }
 

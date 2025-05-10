@@ -20,6 +20,7 @@ class EmailService:
         self.sendgrid_url = "https://api.sendgrid.com/v3/mail/send"
         self.bookingTemplate = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates', 'booking_email.html'))
         self.flightNotification = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates', 'booking_notification.html'))
+        self.visaNotification = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates', 'visa_notification.html'))
 
     def booking_template(self, booking_data, _path):
 
@@ -163,6 +164,48 @@ class EmailService:
 
             if response.status_code == 202:
                 logger.info(f"✅ Payment Email sent successfully")
+                return {"status": "success", "message": f"Email sent successfully"}
+
+            else:
+                logger.error(f"❌ Failed to send email: {response.text}")
+                return {"status": "error", "message": f"Failed to send email: {response.text}"}
+
+        except requests.RequestException as e:
+            logger.error(f"❌ Network error while sending email: {str(e)}")
+            return {"status": "error", "message": f"Network error: {str(e)}"}
+
+        except Exception as e:
+            logger.error(f"❌ Unexpected error: {str(e)}")
+            return {"status": "error", "message": f"Unexpected error: {str(e)}"}
+
+
+
+    async def visa_notification(self, info: dict):
+        
+        try:
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            # Render the external HTML template with data
+            html_content = self.booking_template(info, self.visaNotification)
+
+            payload = {
+                "personalizations": [{"to": [{"email": "tech@ocitravels.com"}]}], # update to visa email
+                "from": {"email": self.sender_email},
+                "subject": 'Visa request Notification',
+                "content": [
+                    {"type": "text/html", "value": html_content}
+                ]
+            }
+
+            # Send request to SendGrid API
+            response = requests.post(self.sendgrid_url, json=payload, headers=headers)
+
+            if response.status_code == 202:
+                logger.info(f"✅ Email sent successfully")
                 return {"status": "success", "message": f"Email sent successfully"}
 
             else:

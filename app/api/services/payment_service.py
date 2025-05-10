@@ -138,19 +138,21 @@ class PaystackPayment:
         """
         try:
             payment_record = {
-                "visa_type": data.get("visa_type"),
-                "visa_for": data.get("visa_for"),
-                "booking_id": data.get("booking_id"),
-                "reference": data.get("reference_id"),
-                "amount": data.get("amount") / 100,  # Convert from kobo to Naira (NGN)
-                "currency": data.get("currency"),
-                "status": data.get("status"),
-                "payment_channel": data.get("payment_channel"),
+                "status": data['status'],
+                "visa_type": data['visa_type'],
+                "visa_for": data['visa_for'],
+                "booking_id": data['booking_id'],
+                "reference": data['reference'],
+                "amount": data['amount'] / 100,  # Convert from kobo to Naira (NGN)
+                "currency": data['currency'],
+                "payment_channel": data['channel'],
                 "paid_at": data.get("paid_at"),
                 "customer": {
                     "email": data["customer"]["email"],
-                    "phone": data["customer"].get("phone", "N/A")
+                    "phone": data["customer"].get("phone", "N/A"),
+                    "name": f'{data['customer'].get("title", "")} {data['customer'].get("first_name", "")} {data['customer'].get("last_name", "")}'
                 },
+                "message": data['customer'].get('message', ""),
                 "created_at": datetime.utcnow().isoformat()
             }
 
@@ -177,11 +179,20 @@ class PaystackPayment:
                 payment_status = transaction_data["data"]["status"]
                 transaction_data["data"]["visa_type"] = verify_params["visa_type"],
                 transaction_data["data"]["visa_for"] = verify_params["visa_for"],
-                transaction_data["data"]["booking_id"] = verify_params["booking_id"],
-                transaction_data["data"]["reference_id"] = verify_params["reference_id"]
+                transaction_data["data"]["booking_id"] = verify_params["booking_id"]
+                transaction_data["data"]["customer"]["phone"] = verify_params["phone"]
+                transaction_data["data"]["customer"]["title"] = verify_params["title"]
+                transaction_data["data"]["customer"]["first_name"] = verify_params["first_name"]
+                transaction_data["data"]["customer"]["last_name"] = verify_params["last_name"]
+                transaction_data["data"]["customer"]["nationality"] = verify_params["nationality"]
+                transaction_data["data"]["customer"]["message"] = verify_params["message"]
 
                 if payment_status == "success":
                     payment = await self.save_visa_record(transaction_data["data"])
+
+                    # send email notification
+                    info = await payment_collection.find_one({"_id": ObjectId(payment.inserted_id)})
+                    # c = await email_service.visa_notification(info)
 
                     return {
                         "status": "Verified",

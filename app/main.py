@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import ALLOWED_ORIGINS
+from app.api.services.exchangerate import get_exchange_rate
 from app.api.routes.flights.flights import router as flights_router
 from app.api.routes.flights.flight_booking import router as flight_booking_router
 from app.api.routes.flights.destinations import router as destinations_router
@@ -53,6 +54,7 @@ app.include_router(country_router, prefix="/api/country", tags=["Country"])
 
 @app.get("/")
 def home():
+    # get_exchange_rate("USD", "NGN")
     return {"message": "OCI Booking API"}
 
 

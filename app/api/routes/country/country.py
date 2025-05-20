@@ -82,7 +82,7 @@ async def list_countries():
             {**airport, "_id": str(airport["_id"])} for airport in countries
         ]
 
-        return formatted_countries
+        return formatted_countries 
     
     except Exception as e:
         return {

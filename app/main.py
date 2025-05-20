@@ -15,6 +15,10 @@ from app.api.routes.visa.visa import router as visa_router
 from app.api.routes.currency.currency import router as currency_router
 from app.api.routes.airport.airports import router as airports_router
 from app.api.routes.country.country import router as country_router
+from app.api.routes.packages.category import router as package_category_router
+from app.api.routes.packages.travelpackages import router as travelpackages_router
+from app.api.routes.packages.reservation import router as travelpackage_reservation_router
+
 from app.api.db.collections import create_ttl_index
 
 app = FastAPI(title="Flight Booking API")
@@ -51,6 +55,10 @@ app.include_router(flight_deals_router, prefix="/api/flight-deals")
 app.include_router(currency_router, prefix="/api/currency", tags=["Currency"])
 app.include_router(airports_router, prefix="/api/airport", tags=["Airport"])
 app.include_router(country_router, prefix="/api/country", tags=["Country"])
+app.include_router(package_category_router, prefix="/api/package", tags=["Travel Packages"])
+app.include_router(travelpackages_router, prefix="/api/travelpackage", tags=["Travel Packages"])
+app.include_router(travelpackage_reservation_router, prefix="/api/travelpackage/reservation", tags=["Travel Packages"])
+
 
 @app.get("/")
 def home():
@@ -63,3 +71,6 @@ if __name__ == "__main__":
     HOST = os.getenv("HOST", "0.0.0.0")
     PORT = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host=HOST, port=PORT)
+
+
+    

@@ -27,7 +27,8 @@ CONFIG = {
         "PAYSTACK_SECRET": os.getenv("PAYSTACK_SECRET"),
         "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY"),
         "EMAIL_SENDER": os.getenv("EMAIL_SENDER"),
-        "APP_URL": os.getenv("APP_URL")
+        "APP_URL": os.getenv("APP_URL"),
+        "FREEPIK_API": os.getenv("FREEPIK_API")
     },
     "staging": {
         "HOST": os.getenv("STAGING_HOST"),
@@ -45,7 +46,8 @@ CONFIG = {
         "PAYSTACK_SECRET": os.getenv("STAGING_PAYSTACK_SECRET"),
         "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY"),
         "EMAIL_SENDER": os.getenv("EMAIL_SENDER"),
-        "APP_URL": os.getenv("APP_URL")
+        "APP_URL": os.getenv("APP_URL"),
+        "FREEPIK_API": os.getenv("FREEPIK_API")
     },
     "production": {
         "DEBUG": os.getenv("PROD_APP_DEBUG"),
@@ -64,7 +66,8 @@ CONFIG = {
         "PAYSTACK_SECRET": os.getenv("PROD_PAYSTACK_SECRET"),
         "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY"),
         "EMAIL_SENDER": os.getenv("EMAIL_SENDER"),
-        "APP_URL": os.getenv("APP_URL")
+        "APP_URL": os.getenv("APP_URL"),
+        "FREEPIK_API": os.getenv("FREEPIK_API")
     },
 }
 
@@ -90,6 +93,7 @@ PAYSTACK_SECRET = ENV_CONFIG["PAYSTACK_SECRET"]
 SENDGRID_API_KEY = ENV_CONFIG["SENDGRID_API_KEY"]
 EMAIL_SENDER = ENV_CONFIG["EMAIL_SENDER"]
 APP_URL = ENV_CONFIG["APP_URL"]
+FREEPIK_API = ENV_CONFIG["FREEPIK_API"]
 
 # Allowed Origins
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")  # Convert to list

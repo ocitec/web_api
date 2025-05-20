@@ -1,7 +1,7 @@
 class Pricing:
 
     def __init__(self):
-        self.exchange_rate = 1610 # dynamically generate from back office or API
+        self.exchange_rate = 1603 # dynamically generate from back office or API
 
     def exchange_rate(self):
         pass
